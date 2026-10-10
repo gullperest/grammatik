@@ -29,12 +29,17 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
 h1{font-size:20px;margin:0;display:flex;align-items:center;gap:10px}
 .flag{width:22px;height:15px;border-radius:2px;background:linear-gradient(#000 33%,#d00 33% 66%,#fc0 66%)}
-.stats{font-size:13px;color:var(--muted);text-align:right}
-.stats button{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:12px;padding:0}
+.iconbtn{font-size:20px;line-height:1;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--card);cursor:pointer}
+.iconbtn.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.card h4{margin:20px 0 6px;font-size:14px}
+.card p{font-size:14px;margin:6px 0}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.fields label{font-size:13px;font-weight:600}
+.fields input{display:block;width:100%;min-width:0;margin-top:4px}
+input.right{border-color:var(--ok);background:var(--okbg)} input.wrong{border-color:var(--bad);background:var(--badbg)}
 nav{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
 nav button{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 6px;cursor:pointer;color:var(--ink);font-size:13px;line-height:1.25}
-nav button b{display:block;font-size:14px}
-nav button span{color:var(--muted);font-size:11px}
+nav button b{font-size:14px}
 nav button.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 @media (max-width:560px){nav{grid-template-columns:repeat(2,1fr)}}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center}
@@ -95,12 +100,15 @@ th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute
 <div class="wrap">
   <header>
     <h1><span class="flag"></span>Grammatik Trainer</h1>
-    <div class="stats" id="stats"></div>
+    <button class="iconbtn" id="profileBtn" aria-label="Profil">👤</button>
   </header>
-  <nav id="nav"></nav>
-  <div id="controls"></div>
-  <div class="card" id="card"></div>
-  <details id="refbox"><summary>Tabelle &amp; Regeln (cheat sheet)</summary><div class="ref" id="ref"></div></details>
+  <div id="main">
+    <nav id="nav"></nav>
+    <div id="controls"></div>
+    <div class="card" id="card"></div>
+    <details id="refbox"><summary>Tabelle</summary><div class="ref" id="ref"></div></details>
+  </div>
+  <div id="profile" hidden></div>
 </div>
 
 <script>
@@ -125,52 +133,11 @@ const PRON = [
   { n: 'sie', a: 'sie', d: 'ihnen', lab: 'sie (they)' },
   { n: 'Sie', a: 'Sie', d: 'Ihnen', lab: 'Sie (formal)' },
 ];
-const PRON_NOM = [
-  ['___ bin heute müde.', 'I', 'ich'], ['Morgen fahre ___ nach Köln.', 'I', 'ich'],
-  ['Kommst ___ heute Abend?', 'you (informal, one person)', 'du'], ['___ hast recht.', 'you (informal, one person)', 'du'],
-  ['Das ist Paul. ___ ist mein Bruder.', 'he', 'er'], ['Wo ist der Schlüssel? ___ liegt auf dem Tisch.', 'it → der Schlüssel', 'er'],
-  ['Das ist Anna. ___ arbeitet in Wien.', 'she', 'sie'], ['Die Lampe ist neu. ___ war teuer.', 'it → die Lampe', 'sie'],
-  ['Das Kind weint. ___ hat Hunger.', 'it → das Kind', 'es'],
-  ['___ gehen heute ins Kino.', 'we', 'wir'], ['Am Samstag machen ___ eine Party.', 'we', 'wir'],
-  ['Habt ___ morgen Zeit?', 'you (informal, several people)', 'ihr'], ['___ seid zu spät!', 'you (informal, several people)', 'ihr'],
-  ['Die Kinder sind im Garten. ___ spielen Fußball.', 'they', 'sie'],
-  ['Herr Braun, kommen ___ bitte herein!', 'you (formal)', 'Sie'], ['Woher kommen ___, Frau Keller?', 'you (formal)', 'Sie'],
-];
-const PRON_FR = {
-  A: [['Anna besucht ___ morgen.', 'besuchen + Akkusativ'], ['Der Lehrer fragt ___.', 'fragen + Akkusativ'], ['Das Geschenk ist für ___.', 'für + Akkusativ'],
-      ['Ohne ___ ist die Party langweilig.', 'ohne + Akkusativ'], ['Die Kinder lieben ___.', 'lieben + Akkusativ'], ['Paul ruft ___ später an.', 'anrufen + Akkusativ'],
-      ['Der Hund hört ___ nicht.', 'hören + Akkusativ'], ['Die Nachbarn kennen ___ gut.', 'kennen + Akkusativ']],
-  D: [['Anna hilft ___.', 'helfen + Dativ'], ['Das Buch gehört ___.', 'gehören + Dativ'], ['Die Kinder spielen mit ___.', 'mit + Dativ'],
-      ['Der Kellner bringt ___ einen Kaffee.', 'bringen: wem? → Dativ'], ['Wie geht es ___?', 'Wie geht es + Dativ'], ['Der Film gefällt ___ sehr.', 'gefallen + Dativ'],
-      ['Die Lehrerin dankt ___.', 'danken + Dativ'], ['Paul kommt später zu ___.', 'zu + Dativ'], ['Anna schenkt ___ ein Buch.', 'schenken: wem? → Dativ']],
-};
 const pronRow = p => `${cspan('N', p.n)} → ${cspan('A', p.a)} → ${cspan('D', p.d)}`;
-
-function genPronSentence(cases) {
-  const c = rnd(cases);
-  if (c === 'N') {
-    const [t, en, a] = rnd(PRON_NOM);
-    return { tag: 'Personalpronomen · Satz', prompt: t, sub: `(${en})`, kind: 'input', answer: [a], show: t.startsWith('___') ? cap(a) : a,
-      explain: `Subjekt → ${cspan('N', 'Nominativ')}` };
-  }
-  const p = rnd(PRON), [t, why] = rnd(PRON_FR[c]);
-  const a = c === 'A' ? p.a : p.d;
-  return { tag: 'Personalpronomen · Satz', prompt: t, sub: `(${p.lab})`, kind: 'input', answer: [a], show: a,
-    explain: `${why} → ${cspan(c, CASE[c])}<br>${pronRow(p)}` };
-}
-function genPronTable(cases) {
-  const cs = cases.filter(c => c !== 'N'); const c = rnd(cs.length ? cs : ['A', 'D']);
-  const p = rnd(PRON), a = c === 'A' ? p.a : p.d;
-  return { tag: 'Personalpronomen · Tabelle', prompt: `${p.lab} → ${cspan(c, CASE[c])}?`, kind: 'input', answer: [a], show: a, explain: pronRow(p) };
-}
-function genPronReverse() {
-  const p = rnd(PRON), c = rnd(['A', 'D']), form = c === 'A' ? p.a : p.d;
-  // several pronouns share forms (sie, uns, euch, ihm): accept every matching reading
-  const ok = [...new Set(PRON.flatMap(q => [q.a === form ? 'Akkusativ' : null, q.d === form ? 'Dativ' : null]).filter(Boolean))];
-  const answer = ok.length === 2 ? 'beides' : ok[0];
-  const rows = PRON.filter(q => q.a === form || q.d === form).map(pronRow).join('<br>');
-  return { tag: 'Personalpronomen · Welcher Kasus?', prompt: `„${form}“`, sub: 'Which case can this form be?', kind: 'multi',
-    groups: [{ options: ['Akkusativ', 'Dativ', 'beides'], answer }], explain: rows };
+function genPronForms() {
+  const p = rnd(PRON);
+  return { tag: 'Personalpronomen', key: p.lab, prompt: p.lab, kind: 'inputs', solution: pronRow(p),
+    fields: [{ label: 'Akkusativ', cls: 'A', answer: p.a }, { label: 'Dativ', cls: 'D', answer: p.d }] };
 }
 
 // ---------- 2. Possessivartikel ----------
@@ -490,13 +457,12 @@ const REF = {
 
 // ---------- features ----------
 const FEATURES = [
-  { id: 'pron', title: 'Personalpronomen', sub: 'ich · mich · mir', cases: true,
-    modes: [['Sätze', genPronSentence], ['Tabelle', genPronTable], ['Welcher Kasus?', genPronReverse]] },
-  { id: 'poss', title: 'Possessivartikel', sub: 'mein · meinen · meinem', cases: true,
+  { id: 'pron', title: 'Personalpronomen', modes: [['Akkusativ & Dativ', genPronForms]] },
+  { id: 'poss', title: 'Possessivartikel', cases: true,
     modes: [['Sätze', genPossSentence], ['Tabelle', genPossTable], ['Endungen', genPossEnding]] },
-  { id: 'prep', title: 'Präpositionen & Verben', sub: 'warten auf + Akk.',
+  { id: 'prep', title: 'Präpositionen & Verben',
     modes: [['Verb + Präposition', genVerbPrep], ['Verb + Kasus', genVerbCase], ['Präposition + Kasus', genPrepCase], ['Artikel einsetzen', genArticle]] },
-  { id: 'satz', title: 'Satzbau', sub: 'Nebensatz · Modalverben',
+  { id: 'satz', title: 'Satzbau',
     modes: [['Modalverben', genBuild('modal')], ['Nebensatz', genBuild('neben')], ['Nebensatz + Modal', genBuild('nmodal')], ['Wo steht das Verb?', genVerbPos]] },
 ];
 
@@ -507,7 +473,7 @@ const state = { f: saved.f || 0, mode: saved.mode || {}, cases: saved.cases || [
 let cur = null;
 const save = () => store.set({ f: state.f, mode: state.mode, cases: state.cases, stats: state.stats, mute: state.mute });
 const feat = () => FEATURES[state.f];
-const modeIdx = () => state.mode[feat().id] ?? 0; // index into modes, or 'mix'
+const modeIdx = () => { const n = feat().modes.length, m = state.mode[feat().id] ?? 0; return n < 2 || (m !== 'mix' && m >= n) ? 0 : m; }; // index into modes, or 'mix'
 
 function nextQuestion() {
   state.n++;
@@ -549,18 +515,29 @@ function sfx(name) {
 
 // ---------- rendering ----------
 function renderChrome() {
-  $('#nav').innerHTML = FEATURES.map((F, i) => `<button class="${i === state.f ? 'on' : ''}" data-f="${i}"><b>${F.title}</b><span>${F.sub}</span></button>`).join('');
+  $('#nav').innerHTML = FEATURES.map((F, i) => `<button class="${i === state.f ? 'on' : ''}" data-f="${i}"><b>${F.title}</b></button>`).join('');
   const F = feat(), m = modeIdx();
-  let h = `<div class="chips"><small>Übung</small>` + F.modes.map(([l], i) => `<button class="chip ${m === i ? 'on' : ''}" data-m="${i}">${l}</button>`).join('') +
+  let h = F.modes.length < 2 ? '' : `<div class="chips">` + F.modes.map(([l], i) => `<button class="chip ${m === i ? 'on' : ''}" data-m="${i}">${l}</button>`).join('') +
     `<button class="chip ${m === 'mix' ? 'on' : ''}" data-m="mix">Mix</button></div>`;
-  if (F.cases) h += `<div class="chips"><small>Kasus</small>` + ['N', 'A', 'D'].map(c => `<button class="chip ${c} ${state.cases.includes(c) ? 'on' : ''}" data-c="${c}">${CASE[c]}</button>`).join('') + '</div>';
+  if (F.cases) h += `<div class="chips">` + ['N', 'A', 'D'].map(c => `<button class="chip ${c} ${state.cases.includes(c) ? 'on' : ''}" data-c="${c}">${CASE[c]}</button>`).join('') + '</div>';
   $('#controls').innerHTML = h;
   $('#ref').innerHTML = REF[F.id]();
   renderStats();
 }
-function renderStats() {
-  const s = state.stats[feat().id] || { c: 0, t: 0 };
-  $('#stats').innerHTML = `${s.c} / ${s.t} richtig${s.t ? ` (${Math.round(100 * s.c / s.t)}%)` : ''} · Serie ${state.streak}<br><button id="mute">${state.mute ? '🔇 sound off' : '🔊 sound on'}</button> · <button id="reset">reset</button>`;
+function renderStats() { if (!$('#profile').hidden) renderProfile(); }
+function renderProfile() {
+  const rows = FEATURES.map(F => { const s = state.stats[F.id] || { c: 0, t: 0 };
+    return `<tr><td>${F.title}</td><td>${s.c} / ${s.t}</td><td>${s.t ? Math.round(100 * s.c / s.t) + '%' : '–'}</td></tr>`; }).join('');
+  $('#profile').innerHTML = `<div class="card"><div class="tag">Profil</div>
+    <h4>Fortschritt</h4><table><tr><th>Übung</th><th>Richtig</th><th>%</th></tr>${rows}</table><p>Aktuelle Serie: <b>${state.streak}</b></p>
+    <h4>Einstellungen</h4><div class="row" style="margin-top:8px"><button class="btn ghost" id="mute">${state.mute ? '🔇 Ton aus' : '🔊 Ton an'}</button><button class="btn ghost" id="reset">Fortschritt zurücksetzen</button></div>
+    <h4>Tipps</h4><p>A wrong answer comes back a few questions later.</p><p>Keyboard: <kbd>Enter</kbd> checks / goes on · <kbd>1</kbd>–<kbd>5</kbd> pick an option.</p>
+    <p>Colours: ${cspan('N', 'Nominativ')} · ${cspan('A', 'Akkusativ')} · ${cspan('D', 'Dativ')} · <span class="v">konjugiertes Verb</span> · <span class="inf">Infinitiv</span></p>
+    <div class="row"><button class="btn" id="back">← Zurück</button></div></div>`;
+}
+function toggleProfile(open) {
+  $('#profile').hidden = !open; $('#main').hidden = open; $('#profileBtn').classList.toggle('on', open);
+  if (open) renderProfile();
 }
 const gapHtml = (t, fill) => t.replace('___', fill ? `<span class="gap filled">${fill}</span>` : '<span class="gap">&nbsp;</span>');
 
@@ -570,6 +547,9 @@ function showQuestion(q) {
   if (q.sub) h += `<div class="sub">${q.sub}</div>`;
   if (q.kind === 'input') {
     h += `<div class="row"><input type="text" id="ans" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Antwort …"><button class="btn" id="check">Prüfen</button></div>`;
+  } else if (q.kind === 'inputs') {
+    h += `<div class="fields">` + q.fields.map((f, i) => `<label class="${f.cls}">${f.label}<input type="text" id="ans${i}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label>`).join('') +
+      `</div><div class="row"><button class="btn" id="check">Prüfen</button></div>`;
   } else if (q.kind === 'multi') {
     h += q.groups.map((g, gi) => `<div class="group">${g.label ? `<label>${g.label}</label>` : ''}<div class="opts">` +
       g.options.map((o, oi) => `<button class="opt" data-g="${gi}" data-o="${oi}">${o}</button>`).join('') + '</div></div>').join('');
@@ -581,10 +561,10 @@ function showQuestion(q) {
     cur.bank = bank;
     h += `<div class="line" id="line"></div><div class="bank" id="bank"></div><div class="row"><button class="btn" id="check" disabled>Prüfen</button><button class="btn ghost" id="clear">Zurücksetzen</button></div>`;
   }
-  h += `<div id="fb"></div><div class="hint">${q.kind === 'multi' ? '<kbd>1</kbd>–<kbd>5</kbd> wählen · ' : ''}<kbd>Enter</kbd> prüfen / weiter</div>`;
+  h += `<div id="fb"></div>`;
   $('#card').innerHTML = h;
   if (q.kind === 'build') drawBuild();
-  const a = $('#ans'); if (a) a.focus();
+  const a = $('#ans') || $('#ans0'); if (a) a.focus();
 }
 
 function drawBuild() {
@@ -603,8 +583,7 @@ function finish(ok, solution) {
   if (!ok) state.retry.push({ q: { ...q, isRetry: true }, due: state.n + 3 });
   save(); renderStats(); sfx(ok ? 'ok' : 'bad');
   $('#fb').innerHTML = `<div class="fb ${ok ? 'ok' : 'bad'}"><h3>${ok ? 'Richtig! ✓' : 'Leider falsch ✗'}</h3>` +
-    (solution ? `<div class="sol">${solution}</div>` : '') + `<p>${q.explain || ''}</p>` + (ok ? '' : '<p><small>This one comes back in a few questions.</small></p>') +
-    `</div><div class="row"><button class="btn" id="next">Weiter →</button></div>`;
+    (solution ? `<div class="sol">${solution}</div>` : '') + `<p>${q.explain || ''}</p>` + `</div><div class="row"><button class="btn" id="next">Weiter →</button></div>`;
   document.querySelectorAll('#card .opt, #card input, #check, #clear').forEach(e => e.disabled = true);
   $('#next').focus();
 }
@@ -617,6 +596,12 @@ function check() {
     const ok = q.answer.some(a => norm(a) === v);
     $('#prompt').innerHTML = gapHtml(q.prompt, q.show);
     finish(ok, ok ? '' : gapHtml(q.prompt, q.show).replace('gap filled', ''));
+  } else if (q.kind === 'inputs') {
+    const els = q.fields.map((_, i) => $('#ans' + i));
+    const empty = els.find(e => !norm(e.value)); if (empty) { empty.focus(); return; }
+    let ok = true;
+    q.fields.forEach((f, i) => { const r = norm(f.answer) === norm(els[i].value); if (!r) ok = false; els[i].classList.add(r ? 'right' : 'wrong'); });
+    finish(ok, q.solution);
   } else if (q.kind === 'multi') {
     if (q.groups.some((_, gi) => cur.sel[gi] == null)) return;
     let ok = true;
@@ -644,6 +629,8 @@ function restart() { state.retry = []; state.streak = 0; renderChrome(); next();
 document.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const d = b.dataset, wasDone = cur && cur.done;
+  if (b.id === 'profileBtn') { toggleProfile($('#profile').hidden); sfx('tap'); return; }
+  if (b.id === 'back') { toggleProfile(false); sfx('tap'); return; }
   if (b.id === 'mute') { state.mute = !state.mute; save(); renderStats(); sfx('tap'); return; }
   if (b.disabled || (b.classList.contains('locked'))) return;
   if (d.f != null) { state.f = +d.f; save(); restart(); }
@@ -653,7 +640,7 @@ document.addEventListener('click', e => {
     if (has && state.cases.length === 1) return;
     state.cases = has ? state.cases.filter(c => c !== d.c) : [...state.cases, d.c]; save(); restart();
   }
-  else if (b.id === 'reset') { state.stats = {}; state.streak = 0; save(); renderStats(); }
+  else if (b.id === 'reset') { if (!confirm('Fortschritt wirklich zurücksetzen?')) return; state.stats = {}; state.streak = 0; save(); renderStats(); }
   else if (b.id === 'check') check();
   else if (b.id === 'next') next();
   else if (b.id === 'clear') { const keep = cur.q.lock ? [0] : []; cur.bank = [...cur.bank, ...cur.placed.filter(i => !keep.includes(i))]; cur.placed = keep; drawBuild(); }
@@ -668,7 +655,7 @@ function pick(gi, oi) {
   check(); // only fires once every group has a selection
 }
 document.addEventListener('keydown', e => {
-  if (!cur) return;
+  if (!cur || !$('#profile').hidden) return;
   if (e.key === 'Enter') { e.preventDefault(); if (cur.done) { sfx('tap'); next(); } else check(); }
   else if (cur.q.kind === 'multi' && !cur.done && /^[1-9]$/.test(e.key)) {
     const gi = cur.q.groups.findIndex((_, i) => cur.sel[i] == null), oi = +e.key - 1;
