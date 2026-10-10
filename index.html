@@ -32,6 +32,15 @@ h1{font-size:20px;margin:0;display:flex;align-items:center;gap:10px}
 .iconbtn{font-size:20px;line-height:1;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--card);cursor:pointer}
 .iconbtn.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .card h4{margin:20px 0 6px;font-size:14px}
+.exgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.extile{text-align:left;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;font-size:15px}
+.extile span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.extile.done,.badge.done{border-color:var(--ok);background:var(--okbg)}
+.extile.done span{color:var(--ok)}
+.badges{display:flex;flex-wrap:wrap;gap:6px}
+.badge{min-width:40px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;font-size:14px}
+.badge.done{color:var(--ok)}
+.sol.small{font-size:16px;font-weight:500}
 .card p{font-size:14px;margin:6px 0}
 .fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:20px}
 .fields label{font-size:13px;font-weight:600}
@@ -49,7 +58,7 @@ nav button.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent
 .chip.N.on{background:var(--nom);border-color:var(--nom);color:#fff}
 .chip.A.on{background:var(--akk);border-color:var(--akk);color:#fff}
 .chip.D.on{background:var(--dat);border-color:var(--dat);color:#fff}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px 20px;margin-top:12px;min-height:280px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px 20px;margin-top:12px}
 .tag{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
 .prompt{font-size:24px;font-weight:600;line-height:1.35}
 .sub{color:var(--muted);margin-top:6px}
@@ -114,7 +123,10 @@ th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute
 <script>
 // ---------- helpers ----------
 const $ = s => document.querySelector(s);
-const rnd = a => a[Math.floor(Math.random() * a.length)];
+let RNG = Math.random;
+const rnd = a => a[Math.floor(RNG() * a.length)];
+const mulberry = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const sshuffle = (a, seed) => { const r = mulberry(seed); a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const norm = s => s.trim().toLowerCase().replace(/\s+/g, ' ');
 const cap = s => s[0].toUpperCase() + s.slice(1);
@@ -136,7 +148,6 @@ const PRON = [
 const pronRow = p => `${cspan('N', p.n)} → ${cspan('A', p.a)} → ${cspan('D', p.d)}`;
 const pronQ = p => ({ tag: 'Personalpronomen', key: p.lab, prompt: p.lab, kind: 'inputs', solution: pronRow(p),
     fields: [{ label: 'Akkusativ', cls: 'A', answer: p.a }, { label: 'Dativ', cls: 'D', answer: p.d }] });
-const genPronForms = () => pronQ(rnd(PRON));
 
 // ---------- 2. Possessivartikel ----------
 const OWNERS = [['ich', 'mein'], ['du', 'dein'], ['er', 'sein'], ['sie (she)', 'ihr'], ['es', 'sein'], ['wir', 'unser'], ['ihr (you all)', 'euer'], ['sie (they)', 'ihr'], ['Sie (formal)', 'Ihr']];
@@ -164,13 +175,13 @@ function genPossSentence(cases) {
     explain: `${why} → ${cspan(c, CASE[c])} · ${GENDER[g]} → <b>${stem === 'euer' ? 'eu(e)r' : stem}-${ENDING[c][g] || '∅'}</b>` +
       (c === 'D' && g === 'p' ? '<br>Dativ Plural: the noun also gets <b>-n</b>.' : '') };
 }
-function genPossTable(cases) {
-  const c = rnd(cases), [lab, stem] = rnd(OWNERS), g = rnd(['m', 'f', 'n', 'p']), a = poss(stem, c, g);
+function possTableQ([c, [lab, stem], g]) {
+  const a = poss(stem, c, g);
   return { tag: 'Possessivartikel · Tabelle', prompt: `${lab} · ${cspan(c, CASE[c])} · ${GENDER[g]}`, sub: `${stem}- + ?`, kind: 'input', answer: [a], show: a,
     explain: `${cspan(c, CASE[c])} ${GENDER[g]} → Endung <b>-${ENDING[c][g] || '∅'}</b>` + (stem === 'euer' && ENDING[c][g] ? ' · euer loses its e: <b>eur-</b>' : '') };
 }
-function genPossEnding(cases) {
-  const c = rnd(cases), g = rnd(['m', 'f', 'n', 'p']), e = ENDING[c][g] || '∅ (no ending)';
+function possEndQ([c, g]) {
+  const e = ENDING[c][g] || '∅ (no ending)';
   return { tag: 'Possessivartikel · Endung', prompt: `${cspan(c, CASE[c])} · ${GENDER[g]}`, sub: 'Which ending? (mein__)', kind: 'multi',
     groups: [{ options: ['∅ (no ending)', 'e', 'en', 'em', 'er'], answer: e }], explain: `mein → <b>${poss('mein', c, g)}</b> (same endings as ein / kein)` };
 }
@@ -226,8 +237,7 @@ gratulieren|zu|D|to congratulate on|Ich gratuliere dir ___ deinem Geburtstag.
 sich informieren|über|A|to find out about|Ich informiere mich ___ die Preise.`.split('\n').map(l => l.split('|'));
 const PREPS = ['an', 'auf', 'bei', 'für', 'in', 'mit', 'nach', 'über', 'um', 'unter', 'von', 'vor', 'zu'];
 
-function genVerbPrep() {
-  const [verb, prep, c, en, s] = rnd(VP);
+function vpQ([verb, prep, c, en, s]) {
   const opts = shuffle([prep, ...shuffle(PREPS.filter(p => p !== prep)).slice(0, 4)]);
   return { tag: 'Verb + Präposition', key: verb + prep, prompt: s, sub: `<b>${verb}</b> — ${en}`, kind: 'multi', fill: prep,
     groups: [{ label: 'Präposition', options: opts, answer: prep }, { label: 'Kasus danach', options: ['Akkusativ', 'Dativ'], answer: CASE[c] }],
@@ -282,8 +292,7 @@ werden|N|to become|Sie wird Ärztin. / Er wird ein guter Koch.
 bleiben|N|to stay / remain|Er bleibt mein Freund.`.split('\n').map(l => l.split('|'));
 const VC_LAB = { N: 'Nominativ', A: 'Akkusativ', D: 'Dativ', DA: 'Dativ + Akkusativ' };
 const VC_WHY = { N: 'Like an “=” sign: both sides are Nominativ.', A: 'Wen oder was? → Akkusativ (the usual case).', D: 'Wem? → Dativ. Dative verbs have to be memorised.', DA: 'Wem? (person) → Dativ · Was? (thing) → Akkusativ.' };
-function genVerbCase() {
-  const [verb, t, en, ex] = rnd(VC);
+function vcQ([verb, t, en, ex]) {
   return { tag: 'Verb + Kasus', key: verb, prompt: verb, sub: `${en} — which case does the object take?`, kind: 'multi',
     groups: [{ options: Object.values(VC_LAB), answer: VC_LAB[t] }], explain: `<b>${verb}</b> + ${VC_LAB[t]}<br><i>${ex}</i><br>${VC_WHY[t]}` };
 }
@@ -295,8 +304,7 @@ const PC_WHY = {
   D: `Immer ${cspan('D', 'Dativ')}: aus, bei, mit, nach, seit, von, zu (+ außer, gegenüber)`,
   W: `Wechselpräpositionen: an, auf, hinter, in, neben, über, unter, vor, zwischen<br>Wohin? (movement to) → ${cspan('A', 'Akkusativ')} · Wo? (location) → ${cspan('D', 'Dativ')}`,
 };
-function genPrepCase() {
-  const t = rnd(['A', 'D', 'W']), p = rnd(PC[t]);
+function pcQ([t, p]) {
   return { tag: 'Präposition + Kasus', key: p, prompt: p, sub: 'Which case follows this preposition?', kind: 'multi',
     groups: [{ options: Object.values(PC_LAB), answer: PC_LAB[t] }], explain: PC_WHY[t] };
 }
@@ -337,8 +345,7 @@ Er träumt von ___ Reise.|die Reise|der|D|träumen von + Dativ
 Ich denke an ___ Urlaub.|der Urlaub|den|A|denken an + Akkusativ
 Sie interessiert sich für ___ Film.|der Film|den|A|sich interessieren für + Akkusativ
 Er nimmt an ___ Kurs teil.|der Kurs|dem|D|teilnehmen an + Dativ`.split('\n').map(l => l.split('|'));
-function genArticle() {
-  const [t, noun, a, c, why] = rnd(ARTS);
+function artQ([t, noun, a, c, why]) {
   return { tag: 'Artikel einsetzen', prompt: t, sub: `(${noun})`, kind: 'input', answer: [a], show: t.startsWith('___') ? cap(a) : a,
     explain: `${why} → ${cspan(c, CASE[c])}<br>der / die / das / die → ${cspan('A', 'den / die / das / die')} → ${cspan('D', 'dem / der / dem / den')}` };
 }
@@ -407,12 +414,8 @@ const SENT = [
   S('nmodal', 'nmodal', "She's taking a taxi because she has to be on time.", 'weil|sie|pünktlich|+sein|*muss', 'Sie nimmt ein Taxi,'),
 ];
 const SET_LAB = { modal: 'Modalverben', neben: 'Nebensatz', nmodal: 'Nebensatz + Modalverb' };
-const genBuild = set => () => {
-  const s = rnd(SENT.filter(x => x.set === set));
-  return { ...s, kind: 'build', tag: 'Satzbau · ' + SET_LAB[set], key: s.en, prompt: s.en, sub: 'Put the words in the right order.', explain: RULES[s.rule] };
-};
-function genVerbPos() {
-  const q = rnd([
+const buildQ = s => ({ ...s, kind: 'build', key: s.en, prompt: s.en, sub: 'Put the words in the right order.', explain: RULES[s.rule] });
+const VERBPOS = [
     ['Hauptsatz (Aussage)', 'Position 2', 'Ich <span class="v">gehe</span> heute ins Kino.'],
     ['Hauptsatz mit Modalverb — wo steht das Modalverb?', 'Position 2', 'Ich <span class="v">will</span> heute ins Kino <span class="inf">gehen</span>.'],
     ['Hauptsatz mit Modalverb — wo steht der Infinitiv?', 'am Ende', 'Ich <span class="v">will</span> heute ins Kino <span class="inf">gehen</span>.'],
@@ -424,7 +427,8 @@ function genVerbPos() {
     ['Hauptsatz mit „Heute“ auf Position 1 — wo steht das Verb?', 'Position 2', 'Heute <span class="v">gehe</span> ich ins Kino.'],
     ['Nach „und / aber / oder / denn“ — wo steht das Verb?', 'Position 2', '…, denn ich <span class="v">habe</span> Zeit. (These conjunctions are “position 0” — normal word order.)'],
     ['Nebensatz im Perfekt — wo steht „haben/sein“?', 'am Ende', '…, weil ich den Film <span class="inf">gesehen</span> <span class="v">habe</span>.'],
-  ]);
+];
+function verbPosQ(q) {
   return { tag: 'Satzbau · Wo steht das Verb?', key: q[0], prompt: q[0], sub: 'Position of the verb (in the clause)?', kind: 'multi',
     groups: [{ options: ['Position 1', 'Position 2', 'am Ende'], answer: q[1] }], explain: q[2] };
 }
@@ -453,42 +457,54 @@ const REF = {
     <p>Modalverben: können, müssen, wollen, dürfen, sollen, möchten.</p>`,
 };
 
-// ---------- features ----------
+// ---------- exercises ----------
+// Every tab is a list of numbered exercises. One exercise = one round: each question once, mistakes again at the end.
+const CASES3 = ['N', 'A', 'D'], G4 = ['m', 'f', 'n', 'p'];
+// split a fixed list into exercises of about `size` items — the same split every time
+function split(list, size, seed) {
+  const a = sshuffle(list, seed), n = Math.ceil(a.length / size), out = [];
+  for (let i = 0; i < n; i++) out.push(a.slice(Math.round(i * a.length / n), Math.round((i + 1) * a.length / n)));
+  return out;
+}
+const group = (id, label, lists, toQ) => lists.map((items, i) => ({ id: `${id}-${i + 1}`, label, make: () => items.map(toQ) }));
+// n distinct questions from a random generator, reproducible via the seed
+function seededSet(gen, n, seed) {
+  RNG = mulberry(seed);
+  try { const out = [], seen = new Set(); for (let i = 0; out.length < n && i < 300; i++) { const q = gen(); if (!seen.has(q.prompt + q.sub)) { seen.add(q.prompt + q.sub); out.push(q); } } return out; }
+  finally { RNG = Math.random; }
+}
+const bySet = set => SENT.filter(x => x.set === set);
 const FEATURES = [
-  // deck: a round asks every item exactly once; mistakes are asked again at the end until they are right
-  { id: 'pron', title: 'Personalpronomen', modes: [['Akkusativ & Dativ', genPronForms]], deck: () => PRON.map(pronQ) },
-  { id: 'poss', title: 'Possessivartikel', cases: true,
-    modes: [['Sätze', genPossSentence], ['Tabelle', genPossTable], ['Endungen', genPossEnding]] },
-  { id: 'prep', title: 'Präpositionen & Verben',
-    modes: [['Verb + Präposition', genVerbPrep], ['Verb + Kasus', genVerbCase], ['Präposition + Kasus', genPrepCase], ['Artikel einsetzen', genArticle]] },
-  { id: 'satz', title: 'Satzbau',
-    modes: [['Modalverben', genBuild('modal')], ['Nebensatz', genBuild('neben')], ['Nebensatz + Modal', genBuild('nmodal')], ['Wo steht das Verb?', genVerbPos]] },
+  { id: 'pron', title: 'Personalpronomen', ex: group('pron', 'Akkusativ & Dativ', [PRON], pronQ) },
+  { id: 'poss', title: 'Possessivartikel', ex: [
+    ...CASES3.map((c, i) => ({ id: 'poss-tab-' + c, label: 'Tabelle', note: c, make: () => sshuffle(OWNERS.flatMap(o => G4.map(g => [c, o, g])), 11 + i).slice(0, 10).map(possTableQ) })),
+    ...group('poss-end', 'Endungen', [CASES3.flatMap(c => G4.map(g => [c, g]))], possEndQ),
+    ...[['N'], ['A'], ['D'], CASES3].map((cs, i) => ({ id: 'poss-satz-' + cs.join(''), label: 'Sätze', note: cs.length > 1 ? 'Mix' : cs[0], make: () => seededSet(() => genPossSentence(cs), 10, 21 + i) })),
+  ] },
+  { id: 'prep', title: 'Präpositionen & Verben', ex: [
+    ...group('prep-vp', 'Verb + Präposition', split(VP, 10, 1), vpQ),
+    ...group('prep-vc', 'Verb + Kasus', split(VC, 10, 2), vcQ),
+    ...group('prep-pc', 'Präposition + Kasus', split(Object.entries(PC).flatMap(([t, ps]) => ps.map(p => [t, p])), 12, 3), pcQ),
+    ...group('prep-art', 'Artikel einsetzen', split(ARTS, 9, 4), artQ),
+  ] },
+  { id: 'satz', title: 'Satzbau', ex: [
+    ...group('satz-modal', SET_LAB.modal, split(bySet('modal'), 8, 5), buildQ),
+    ...group('satz-neben', SET_LAB.neben, split(bySet('neben'), 8, 6), buildQ),
+    ...group('satz-nmodal', SET_LAB.nmodal, split(bySet('nmodal'), 8, 7), buildQ),
+    ...group('satz-pos', 'Wo steht das Verb?', [VERBPOS], verbPosQ),
+  ] },
 ];
+FEATURES.forEach(F => F.ex.forEach((e, i) => e.n = i + 1));
 
 // ---------- state ----------
 const store = { get() { try { return JSON.parse(localStorage.getItem('grammatik') || '{}'); } catch { return {}; } }, set(v) { try { localStorage.setItem('grammatik', JSON.stringify(v)); } catch {} } };
 const saved = store.get();
-const state = { f: saved.f || 0, mode: saved.mode || {}, cases: saved.cases || ['N', 'A', 'D'], stats: saved.stats || {}, mute: !!saved.mute, streak: 0, n: 0, retry: [], lastKey: '' };
+// done: { exerciseId: { best, total } } — best = most answers right on the first try
+const state = { f: saved.f < FEATURES.length ? saved.f : 0, done: saved.done || {}, mute: !!saved.mute, ex: null, round: null };
 let cur = null;
-const save = () => store.set({ f: state.f, mode: state.mode, cases: state.cases, stats: state.stats, mute: state.mute });
+const save = () => store.set({ f: state.f, done: state.done, mute: state.mute });
 const feat = () => FEATURES[state.f];
-const modeIdx = () => { const n = feat().modes.length, m = state.mode[feat().id] ?? 0; return n < 2 || (m !== 'mix' && m >= n) ? 0 : m; }; // index into modes, or 'mix'
-
-function nextQuestion() {
-  state.n++;
-  const due = state.retry.findIndex(r => r.due <= state.n);
-  if (due >= 0) return state.retry.splice(due, 1)[0].q;
-  const F = feat(), m = modeIdx();
-  let q;
-  for (let i = 0; i < 8; i++) {
-    const gen = m === 'mix' ? rnd(F.modes)[1] : F.modes[m][1];
-    q = gen(state.cases);
-    q.key = q.key || q.prompt + (q.sub || '');
-    if (q.key !== state.lastKey) break;
-  }
-  state.lastKey = q.key;
-  return q;
-}
+const doneCount = F => F.ex.filter(e => state.done[e.id]).length;
 
 // ---------- sound (generated with Web Audio, no files) ----------
 let actx;
@@ -513,41 +529,67 @@ function sfx(name) {
 }
 
 // ---------- rendering ----------
-function renderChrome() {
-  $('#nav').innerHTML = FEATURES.map((F, i) => `<button class="${i === state.f ? 'on' : ''}" data-f="${i}"><b>${F.title}</b></button>`).join('');
-  const F = feat(), m = modeIdx();
-  let h = F.modes.length < 2 ? '' : `<div class="chips">` + F.modes.map(([l], i) => `<button class="chip ${m === i ? 'on' : ''}" data-m="${i}">${l}</button>`).join('') +
-    `<button class="chip ${m === 'mix' ? 'on' : ''}" data-m="mix">Mix</button></div>`;
-  if (F.cases) h += `<div class="chips">` + ['N', 'A', 'D'].map(c => `<button class="chip ${c} ${state.cases.includes(c) ? 'on' : ''}" data-c="${c}">${CASE[c]}</button>`).join('') + '</div>';
-  $('#controls').innerHTML = h;
-  $('#ref').innerHTML = REF[F.id]();
-  renderStats();
-}
-function renderStats() { if (!$('#profile').hidden) renderProfile(); }
-function renderProfile() {
-  const rows = FEATURES.map(F => { const s = state.stats[F.id] || { c: 0, t: 0 };
-    return `<tr><td>${F.title}</td><td>${s.c} / ${s.t}</td><td>${s.t ? Math.round(100 * s.c / s.t) + '%' : '–'}</td></tr>`; }).join('');
-  $('#profile').innerHTML = `<div class="card"><div class="tag">Profil</div>
-    <h4>Fortschritt</h4><table><tr><th>Übung</th><th>Richtig</th><th>%</th></tr>${rows}</table><p>Aktuelle Serie: <b>${state.streak}</b></p>
-    <h4>Einstellungen</h4><div class="row" style="margin-top:8px"><button class="btn ghost" id="mute">${state.mute ? '🔇 Ton aus' : '🔊 Ton an'}</button><button class="btn ghost" id="reset">Fortschritt zurücksetzen</button></div>
-    <h4>Tipps</h4><p>Personalpronomen: one round asks every pronoun once; mistakes are asked again at the end.</p><p>Other exercises: a wrong answer comes back a few questions later.</p><p>Keyboard: <kbd>Enter</kbd> checks / goes on · <kbd>1</kbd>–<kbd>5</kbd> pick an option.</p>
-    <p>Colours: ${cspan('N', 'Nominativ')} · ${cspan('A', 'Akkusativ')} · ${cspan('D', 'Dativ')} · <span class="v">konjugiertes Verb</span> · <span class="inf">Infinitiv</span></p>
-    <div class="row"><button class="btn" id="back">← Zurück</button></div></div>`;
-}
-function toggleProfile(open) {
-  $('#profile').hidden = !open; $('#main').hidden = open; $('#profileBtn').classList.toggle('on', open);
-  if (open) renderProfile();
-}
 const gapHtml = (t, fill) => t.replace('___', fill ? `<span class="gap filled">${fill}</span>` : '<span class="gap">&nbsp;</span>');
+const noteHtml = e => e.note ? (CASE[e.note] ? cspan(e.note, CASE[e.note]) : e.note) : '';
+function renderNav() {
+  $('#nav').innerHTML = FEATURES.map((F, i) => `<button class="${i === state.f ? 'on' : ''}" data-f="${i}"><b>${F.title}</b></button>`).join('');
+  $('#ref').innerHTML = REF[feat().id]();
+}
+
+// exercise picker for the current tab
+function showList() {
+  state.ex = null; state.round = null; cur = null;
+  renderNav(); $('#controls').innerHTML = '';
+  const F = feat(); let h = '', last = null;
+  F.ex.forEach((e, i) => {
+    if (e.label !== last) { h += (last === null ? '' : '</div>') + `<h4>${e.label}</h4><div class="exgrid">`; last = e.label; }
+    const d = state.done[e.id];
+    h += `<button class="extile ${d ? 'done' : ''}" data-ex="${i}"><b>Übung ${e.n}</b><span>${[noteHtml(e), d ? `✓ ${d.best} / ${d.total}` : ''].filter(Boolean).join(' · ') || '&nbsp;'}</span></button>`;
+  });
+  $('#card').innerHTML = `<div class="tag">${doneCount(F)} / ${F.ex.length} erledigt</div>${h}</div>`;
+}
+function startExercise(i) {
+  state.ex = feat().ex[i];
+  const d = shuffle(state.ex.make());
+  state.round = { queue: d, total: d.length, asked: 0, right: 0, missed: [] };
+  $('#controls').innerHTML = `<div class="chips"><button class="chip" id="toList">← Übungen</button></div>`;
+  next();
+}
+function next() {
+  const r = state.round;
+  if (!r.queue.length) return showSummary();
+  const q = r.queue.shift();
+  q.progress = q.isRetry ? `Wiederholung · noch ${r.queue.length + 1}` : `${++r.asked} / ${r.total}`;
+  showQuestion(q);
+}
+// the right answer as one line, for the result screen
+function solText(q) {
+  if (q.solution) return q.solution;
+  if (q.kind === 'input') return gapHtml(q.prompt, q.show).replace('gap filled', '');
+  if (q.kind === 'build') return (q.pre ? q.pre + ' ' : '') + q.tiles.map(t => t.role ? `<span class="${t.role}">${t.t}</span>` : t.t).join(' ') + q.end;
+  return (q.fill ? q.prompt.replace('___', `<b>${q.fill}</b>`) : q.prompt) + ' → ' + q.groups.map(g => g.answer).filter(a => a !== q.fill).join(', ');
+}
+function showSummary() {
+  const r = state.round, e = state.ex, F = feat(), prev = state.done[e.id];
+  state.done[e.id] = { best: Math.max(prev ? prev.best : 0, r.right), total: r.total }; save();
+  cur = { summary: true, done: true, q: {} };
+  const hasNext = e.n < F.ex.length;
+  $('#card').innerHTML = `<div class="tag">${F.title}</div><div class="prompt">Übung ${e.n} erledigt ✓</div>
+    <div class="sub">${r.right} / ${r.total} beim ersten Versuch${r.right === r.total ? ' 🎉' : ''}</div>` +
+    (r.missed.length ? `<h4>Noch üben</h4>` + r.missed.map(q => `<div class="sol small">${solText(q)}</div>`).join('') : '') +
+    `<div class="row">${hasNext ? `<button class="btn" id="nextEx">Übung ${e.n + 1} →</button>` : ''}<button class="btn ${hasNext ? 'ghost' : ''}" id="again">Noch einmal</button><button class="btn ghost" id="toList">Übungen</button></div>`;
+  ($('#nextEx') || $('#again')).focus();
+}
 
 function showQuestion(q) {
   cur = { q, done: false, sel: [], placed: [], bank: [] };
-  let h = `<div class="tag">${q.tag}${q.progress ? ' · ' + q.progress : ''}</div><div class="prompt" id="prompt">${gapHtml(q.prompt)}</div>`;
+  let h = `<div class="tag">Übung ${state.ex.n} · ${q.progress}</div><div class="prompt" id="prompt">${gapHtml(q.prompt)}</div>`;
   if (q.sub) h += `<div class="sub">${q.sub}</div>`;
+  const inp = id => `<input type="text" id="${id}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">`;
   if (q.kind === 'input') {
-    h += `<div class="row"><input type="text" id="ans" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Antwort …"><button class="btn" id="check">Prüfen</button></div>`;
+    h += `<div class="row">${inp('ans')}<button class="btn" id="check">Prüfen</button></div>`;
   } else if (q.kind === 'inputs') {
-    h += `<div class="fields">` + q.fields.map((f, i) => `<label class="${f.cls}">${f.label}<input type="text" id="ans${i}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label>`).join('') +
+    h += `<div class="fields">` + q.fields.map((f, i) => `<label class="${f.cls}">${f.label}${inp('ans' + i)}</label>`).join('') +
       `</div><div class="row"><button class="btn" id="check">Prüfen</button></div>`;
   } else if (q.kind === 'multi') {
     h += q.groups.map((g, gi) => `<div class="group">${g.label ? `<label>${g.label}</label>` : ''}<div class="opts">` +
@@ -575,17 +617,12 @@ function drawBuild() {
 }
 
 function finish(ok, solution) {
-  const q = cur.q; cur.done = true;
-  const s = state.stats[feat().id] = state.stats[feat().id] || { c: 0, t: 0 };
-  if (!q.isRetry) { s.t++; if (ok) s.c++; }
-  state.streak = ok ? state.streak + 1 : 0;
-  if (feat().deck) {
-    if (!ok) { state.round.queue.push({ ...q, isRetry: true }); if (!q.isRetry) state.round.missed.push(q); }
-    else if (!q.isRetry) state.round.right++;
-  } else if (!ok) state.retry.push({ q: { ...q, isRetry: true }, due: state.n + 3 });
-  save(); renderStats(); sfx(ok ? 'ok' : 'bad');
+  const q = cur.q, r = state.round; cur.done = true;
+  if (!ok) { r.queue.push({ ...q, isRetry: true }); if (!q.isRetry) r.missed.push(q); }
+  else if (!q.isRetry) r.right++;
+  sfx(ok ? 'ok' : 'bad');
   $('#fb').innerHTML = `<div class="fb ${ok ? 'ok' : 'bad'}"><h3>${ok ? 'Richtig! ✓' : 'Leider falsch ✗'}</h3>` +
-    (solution ? `<div class="sol">${solution}</div>` : '') + `<p>${q.explain || ''}</p>` + `</div><div class="row"><button class="btn" id="next">Weiter →</button></div>`;
+    (solution ? `<div class="sol">${solution}</div>` : '') + `<p>${q.explain || ''}</p></div><div class="row"><button class="btn" id="next">Weiter →</button></div>`;
   document.querySelectorAll('#card .opt, #card input, #check, #clear').forEach(e => e.disabled = true);
   $('#next').focus();
 }
@@ -597,7 +634,7 @@ function check() {
     const v = norm($('#ans').value); if (!v) return;
     const ok = q.answer.some(a => norm(a) === v);
     $('#prompt').innerHTML = gapHtml(q.prompt, q.show);
-    finish(ok, ok ? '' : gapHtml(q.prompt, q.show).replace('gap filled', ''));
+    finish(ok, ok ? '' : solText(q));
   } else if (q.kind === 'inputs') {
     const els = q.fields.map((_, i) => $('#ans' + i));
     const empty = els.find(e => !norm(e.value)); if (empty) { empty.focus(); return; }
@@ -619,51 +656,48 @@ function check() {
   } else {
     if (cur.bank.length) return;
     const ok = cur.placed.map(i => q.tiles[i].t).join(' ') === q.tiles.map(t => t.t).join(' ');
-    const sol = (q.pre ? q.pre + ' ' : '') + q.tiles.map(t => t.role ? `<span class="${t.role}">${t.t}</span>` : t.t).join(' ') + q.end;
     cur.done = true; drawBuild();
-    finish(ok, sol);
+    finish(ok, solText(q));
   }
 }
-function startRound() { const d = shuffle(feat().deck()); state.round = { queue: d, total: d.length, asked: 0, right: 0, missed: [] }; }
-function next() {
-  if (!feat().deck) return showQuestion(nextQuestion());
-  if (!state.round.queue.length) { if (!(cur && cur.summary)) return showSummary(); startRound(); }
-  const r = state.round, q = r.queue.shift();
-  q.progress = q.isRetry ? `Wiederholung · noch ${r.queue.length + 1}` : `${++r.asked} / ${r.total}`;
-  showQuestion(q);
+
+// ---------- profile ----------
+function renderProfile() {
+  const blocks = FEATURES.map((F, fi) => `<h4>${F.title} — ${doneCount(F)} / ${F.ex.length} erledigt</h4><div class="badges">` +
+    F.ex.map((e, i) => { const d = state.done[e.id]; return `<button class="badge ${d ? 'done' : ''}" data-jump="${fi},${i}" title="${e.label}">${e.n}${d ? ' ✓' : ''}</button>`; }).join('') + '</div>').join('');
+  $('#profile').innerHTML = `<div class="card"><div class="tag">Profil</div>${blocks}
+    <h4>Einstellungen</h4><div class="row" style="margin-top:8px"><button class="btn ghost" id="mute">${state.mute ? '🔇 Ton aus' : '🔊 Ton an'}</button><button class="btn ghost" id="reset">Fortschritt zurücksetzen</button></div>
+    <h4>Tipps</h4><p>Each exercise asks every question once; mistakes are asked again at the end. ✓ = finished — tap a number to open that exercise.</p>
+    <p>Keyboard: <kbd>Enter</kbd> checks / goes on · <kbd>1</kbd>–<kbd>5</kbd> pick an option.</p>
+    <p>Colours: ${cspan('N', 'Nominativ')} · ${cspan('A', 'Akkusativ')} · ${cspan('D', 'Dativ')} · <span class="v">konjugiertes Verb</span> · <span class="inf">Infinitiv</span></p>
+    <div class="row"><button class="btn" id="back">← Zurück</button></div></div>`;
 }
-function showSummary() {
-  const r = state.round; cur = { summary: true, done: true, q: {} };
-  $('#card').innerHTML = `<div class="tag">${feat().title} · Ergebnis</div><div class="prompt">${r.right} / ${r.total} beim ersten Versuch${r.right === r.total ? ' 🎉' : ''}</div>` +
-    (r.missed.length ? `<h4>Noch üben</h4>` + r.missed.map(q => `<div class="sol">${q.solution}</div>`).join('') : '') +
-    `<div class="row"><button class="btn" id="next">Noch einmal</button></div>`;
-  $('#next').focus();
+function toggleProfile(open) {
+  $('#profile').hidden = !open; $('#main').hidden = open; $('#profileBtn').classList.toggle('on', open);
+  if (open) renderProfile(); else if (!state.ex) showList();
 }
-function restart() { state.retry = []; state.streak = 0; if (feat().deck) startRound(); renderChrome(); next(); }
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
+  const b = e.target.closest('button'); if (!b || b.disabled || b.classList.contains('locked')) return;
   const d = b.dataset, wasDone = cur && cur.done;
-  if (b.id === 'profileBtn') { toggleProfile($('#profile').hidden); sfx('tap'); return; }
-  if (b.id === 'back') { toggleProfile(false); sfx('tap'); return; }
-  if (b.id === 'mute') { state.mute = !state.mute; save(); renderStats(); sfx('tap'); return; }
-  if (b.disabled || (b.classList.contains('locked'))) return;
-  if (d.f != null) { state.f = +d.f; save(); restart(); }
-  else if (d.m != null) { state.mode[feat().id] = d.m === 'mix' ? 'mix' : +d.m; save(); restart(); }
-  else if (d.c) {
-    const has = state.cases.includes(d.c);
-    if (has && state.cases.length === 1) return;
-    state.cases = has ? state.cases.filter(c => c !== d.c) : [...state.cases, d.c]; save(); restart();
-  }
-  else if (b.id === 'reset') { if (!confirm('Fortschritt wirklich zurücksetzen?')) return; state.stats = {}; state.streak = 0; save(); renderStats(); }
+  if (b.id === 'profileBtn') toggleProfile($('#profile').hidden);
+  else if (b.id === 'back') toggleProfile(false);
+  else if (b.id === 'mute') { state.mute = !state.mute; save(); renderProfile(); }
+  else if (b.id === 'reset') { if (!confirm('Fortschritt wirklich zurücksetzen?')) return; state.done = {}; save(); renderProfile(); }
+  else if (d.jump) { const [f, i] = d.jump.split(',').map(Number); state.f = f; save(); state.ex = FEATURES[f].ex[i]; toggleProfile(false); renderNav(); startExercise(i); }
+  else if (d.f != null) { state.f = +d.f; save(); showList(); }
+  else if (d.ex != null) startExercise(+d.ex);
+  else if (b.id === 'toList') showList();
+  else if (b.id === 'nextEx') startExercise(state.ex.n);
+  else if (b.id === 'again') startExercise(state.ex.n - 1);
   else if (b.id === 'check') check();
   else if (b.id === 'next') next();
   else if (b.id === 'clear') { const keep = cur.q.lock ? [0] : []; cur.bank = [...cur.bank, ...cur.placed.filter(i => !keep.includes(i))]; cur.placed = keep; drawBuild(); }
   else if (d.g != null && !cur.done) pick(+d.g, +d.o);
   else if (d.b != null && !cur.done) { const i = +d.b; cur.bank = cur.bank.filter(x => x !== i); cur.placed.push(i); drawBuild(); }
-  else if (d.p != null && !cur.done) { const i = +d.p; if (cur.q.lock && i === 0) return; cur.placed = cur.placed.filter(x => x !== i); cur.bank.push(i); drawBuild(); }
-  if (!(cur.done && !wasDone)) sfx('tap'); // the right/wrong sound already played when a click finished the question
+  else if (d.p != null && !cur.done) { const i = +d.p; cur.placed = cur.placed.filter(x => x !== i); cur.bank.push(i); drawBuild(); }
+  if (!(cur && cur.done && !wasDone)) sfx('tap'); // the right/wrong sound already played when a click finished the question
 });
 function pick(gi, oi) {
   cur.sel[gi] = oi;
@@ -672,15 +706,18 @@ function pick(gi, oi) {
 }
 document.addEventListener('keydown', e => {
   if (!cur || !$('#profile').hidden) return;
-  if (e.key === 'Enter') { e.preventDefault(); if (cur.done) { sfx('tap'); next(); } else check(); }
-  else if (cur.q.kind === 'multi' && !cur.done && /^[1-9]$/.test(e.key)) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (cur.summary) { sfx('tap'); state.ex.n < feat().ex.length ? startExercise(state.ex.n) : showList(); }
+    else if (cur.done) { sfx('tap'); next(); }
+    else check();
+  } else if (cur.q.kind === 'multi' && !cur.done && /^[1-9]$/.test(e.key)) {
     const gi = cur.q.groups.findIndex((_, i) => cur.sel[i] == null), oi = +e.key - 1;
     if (gi >= 0 && oi < cur.q.groups[gi].options.length) pick(gi, oi);
   }
 });
 
-if (state.f >= FEATURES.length) state.f = 0;
-restart();
+showList();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
