@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Grammatik">
+<meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#17171a" media="(prefers-color-scheme: dark)">
+<title>Grammatik Trainer</title>
+<style>
+:root{
+  --bg:#f6f5f1; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e2e0d9; --accent:#1d1d1f;
+  --nom:#2563eb; --akk:#d9480f; --dat:#15803d; --verb:#b4124a; --inf:#7c3aed;
+  --ok:#15803d; --okbg:#e7f5ec; --bad:#b91c1c; --badbg:#fdecec;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#17171a; --card:#222226; --ink:#f1f1f3; --muted:#a0a0a8; --line:#35353b; --accent:#f1f1f3;
+    --nom:#7aa7ff; --akk:#ff9463; --dat:#5fd08a; --verb:#ff7aa8; --inf:#b99bff;
+    --ok:#5fd08a; --okbg:#17301f; --bad:#ff8a8a; --badbg:#3a1a1a; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top)) 16px calc(60px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+h1{font-size:20px;margin:0;display:flex;align-items:center;gap:10px}
+.flag{width:22px;height:15px;border-radius:2px;background:linear-gradient(#000 33%,#d00 33% 66%,#fc0 66%)}
+.stats{font-size:13px;color:var(--muted);text-align:right}
+.stats button{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:12px;padding:0}
+nav{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+nav button{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 6px;cursor:pointer;color:var(--ink);font-size:13px;line-height:1.25}
+nav button b{display:block;font-size:14px}
+nav button span{color:var(--muted);font-size:11px}
+nav button.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+@media (max-width:560px){nav{grid-template-columns:repeat(2,1fr)}}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center}
+.chips small{color:var(--muted);margin-right:4px;min-width:42px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer}
+.chip.on{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.chip.N.on{background:var(--nom);border-color:var(--nom);color:#fff}
+.chip.A.on{background:var(--akk);border-color:var(--akk);color:#fff}
+.chip.D.on{background:var(--dat);border-color:var(--dat);color:#fff}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px 20px;margin-top:12px;min-height:280px}
+.tag{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.prompt{font-size:24px;font-weight:600;line-height:1.35}
+.sub{color:var(--muted);margin-top:6px}
+.gap{display:inline-block;min-width:64px;border-bottom:2px solid var(--muted);text-align:center;color:var(--muted)}
+.gap.filled{border-color:var(--ok);color:var(--ok)}
+.row{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;align-items:center}
+input[type=text]{flex:1;min-width:160px;font-size:20px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+input[type=text]:focus{outline:2px solid var(--accent);outline-offset:1px}
+.btn{font-size:16px;padding:10px 18px;border-radius:10px;border:1px solid var(--accent);background:var(--accent);color:var(--bg);cursor:pointer}
+.btn:disabled{opacity:.35;cursor:default}
+.btn.ghost{background:none;color:var(--ink);border-color:var(--line)}
+.group{margin-top:18px}
+.group label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{font-size:17px;padding:10px 16px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.opt.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.opt.right{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
+.opt.wrong{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
+.opt:disabled{cursor:default}
+.line{margin-top:18px;min-height:54px;padding:8px;border:1px dashed var(--line);border-radius:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:18px}
+.line .pre{color:var(--muted);padding:0 4px}
+.bank{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;min-height:44px}
+.tile{font-size:18px;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.tile.locked{cursor:default;opacity:.7}
+.fb{margin-top:20px;padding:14px 16px;border-radius:10px}
+.fb.ok{background:var(--okbg)} .fb.bad{background:var(--badbg)}
+.fb h3{margin:0 0 4px;font-size:16px}
+.fb.ok h3{color:var(--ok)} .fb.bad h3{color:var(--bad)}
+.fb .sol{font-size:19px;font-weight:600;margin:4px 0}
+.fb p{margin:6px 0 0;font-size:14px}
+.N{color:var(--nom)} .A{color:var(--akk)} .D{color:var(--dat)}
+.v{color:var(--verb);font-weight:700;text-decoration:underline} .inf{color:var(--inf);font-weight:700}
+kbd{font:12px ui-monospace,monospace;border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--muted)}
+.hint{font-size:12px;color:var(--muted);margin-top:14px}
+details{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+summary{cursor:pointer;font-weight:600}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.ref p{font-size:14px;margin:8px 0}
+.ref h4{margin:16px 0 4px;font-size:14px}
+.schema{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 12px;font-size:14px}
+.schema span{border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+.schema .v,.schema .inf{text-decoration:none;border-color:currentColor}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="flag"></span>Grammatik Trainer</h1>
+    <div class="stats" id="stats"></div>
+  </header>
+  <nav id="nav"></nav>
+  <div id="controls"></div>
+  <div class="card" id="card"></div>
+  <details id="refbox"><summary>Tabelle &amp; Regeln (cheat sheet)</summary><div class="ref" id="ref"></div></details>
+</div>
+
+<script>
+// ---------- helpers ----------
+const $ = s => document.querySelector(s);
+const rnd = a => a[Math.floor(Math.random() * a.length)];
+const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const norm = s => s.trim().toLowerCase().replace(/\s+/g, ' ');
+const cap = s => s[0].toUpperCase() + s.slice(1);
+const CASE = { N: 'Nominativ', A: 'Akkusativ', D: 'Dativ' };
+const cspan = (c, t) => `<span class="${c}">${t}</span>`;
+
+// ---------- 1. Personalpronomen ----------
+const PRON = [
+  { n: 'ich', a: 'mich', d: 'mir', lab: 'ich' },
+  { n: 'du', a: 'dich', d: 'dir', lab: 'du' },
+  { n: 'er', a: 'ihn', d: 'ihm', lab: 'er' },
+  { n: 'sie', a: 'sie', d: 'ihr', lab: 'sie (she)' },
+  { n: 'es', a: 'es', d: 'ihm', lab: 'es' },
+  { n: 'wir', a: 'uns', d: 'uns', lab: 'wir' },
+  { n: 'ihr', a: 'euch', d: 'euch', lab: 'ihr (you all)' },
+  { n: 'sie', a: 'sie', d: 'ihnen', lab: 'sie (they)' },
+  { n: 'Sie', a: 'Sie', d: 'Ihnen', lab: 'Sie (formal)' },
+];
+const PRON_NOM = [
+  ['___ bin heute müde.', 'I', 'ich'], ['Morgen fahre ___ nach Köln.', 'I', 'ich'],
+  ['Kommst ___ heute Abend?', 'you (informal, one person)', 'du'], ['___ hast recht.', 'you (informal, one person)', 'du'],
+  ['Das ist Paul. ___ ist mein Bruder.', 'he', 'er'], ['Wo ist der Schlüssel? ___ liegt auf dem Tisch.', 'it → der Schlüssel', 'er'],
+  ['Das ist Anna. ___ arbeitet in Wien.', 'she', 'sie'], ['Die Lampe ist neu. ___ war teuer.', 'it → die Lampe', 'sie'],
+  ['Das Kind weint. ___ hat Hunger.', 'it → das Kind', 'es'],
+  ['___ gehen heute ins Kino.', 'we', 'wir'], ['Am Samstag machen ___ eine Party.', 'we', 'wir'],
+  ['Habt ___ morgen Zeit?', 'you (informal, several people)', 'ihr'], ['___ seid zu spät!', 'you (informal, several people)', 'ihr'],
+  ['Die Kinder sind im Garten. ___ spielen Fußball.', 'they', 'sie'],
+  ['Herr Braun, kommen ___ bitte herein!', 'you (formal)', 'Sie'], ['Woher kommen ___, Frau Keller?', 'you (formal)', 'Sie'],
+];
+const PRON_FR = {
+  A: [['Anna besucht ___ morgen.', 'besuchen + Akkusativ'], ['Der Lehrer fragt ___.', 'fragen + Akkusativ'], ['Das Geschenk ist für ___.', 'für + Akkusativ'],
+      ['Ohne ___ ist die Party langweilig.', 'ohne + Akkusativ'], ['Die Kinder lieben ___.', 'lieben + Akkusativ'], ['Paul ruft ___ später an.', 'anrufen + Akkusativ'],
+      ['Der Hund hört ___ nicht.', 'hören + Akkusativ'], ['Die Nachbarn kennen ___ gut.', 'kennen + Akkusativ']],
+  D: [['Anna hilft ___.', 'helfen + Dativ'], ['Das Buch gehört ___.', 'gehören + Dativ'], ['Die Kinder spielen mit ___.', 'mit + Dativ'],
+      ['Der Kellner bringt ___ einen Kaffee.', 'bringen: wem? → Dativ'], ['Wie geht es ___?', 'Wie geht es + Dativ'], ['Der Film gefällt ___ sehr.', 'gefallen + Dativ'],
+      ['Die Lehrerin dankt ___.', 'danken + Dativ'], ['Paul kommt später zu ___.', 'zu + Dativ'], ['Anna schenkt ___ ein Buch.', 'schenken: wem? → Dativ']],
+};
+const pronRow = p => `${cspan('N', p.n)} → ${cspan('A', p.a)} → ${cspan('D', p.d)}`;
+
+function genPronSentence(cases) {
+  const c = rnd(cases);
+  if (c === 'N') {
+    const [t, en, a] = rnd(PRON_NOM);
+    return { tag: 'Personalpronomen · Satz', prompt: t, sub: `(${en})`, kind: 'input', answer: [a], show: t.startsWith('___') ? cap(a) : a,
+      explain: `Subjekt → ${cspan('N', 'Nominativ')}` };
+  }
+  const p = rnd(PRON), [t, why] = rnd(PRON_FR[c]);
+  const a = c === 'A' ? p.a : p.d;
+  return { tag: 'Personalpronomen · Satz', prompt: t, sub: `(${p.lab})`, kind: 'input', answer: [a], show: a,
+    explain: `${why} → ${cspan(c, CASE[c])}<br>${pronRow(p)}` };
+}
+function genPronTable(cases) {
+  const cs = cases.filter(c => c !== 'N'); const c = rnd(cs.length ? cs : ['A', 'D']);
+  const p = rnd(PRON), a = c === 'A' ? p.a : p.d;
+  return { tag: 'Personalpronomen · Tabelle', prompt: `${p.lab} → ${cspan(c, CASE[c])}?`, kind: 'input', answer: [a], show: a, explain: pronRow(p) };
+}
+function genPronReverse() {
+  const p = rnd(PRON), c = rnd(['A', 'D']), form = c === 'A' ? p.a : p.d;
+  // several pronouns share forms (sie, uns, euch, ihm): accept every matching reading
+  const ok = [...new Set(PRON.flatMap(q => [q.a === form ? 'Akkusativ' : null, q.d === form ? 'Dativ' : null]).filter(Boolean))];
+  const answer = ok.length === 2 ? 'beides' : ok[0];
+  const rows = PRON.filter(q => q.a === form || q.d === form).map(pronRow).join('<br>');
+  return { tag: 'Personalpronomen · Welcher Kasus?', prompt: `„${form}“`, sub: 'Which case can this form be?', kind: 'multi',
+    groups: [{ options: ['Akkusativ', 'Dativ', 'beides'], answer }], explain: rows };
+}
+
+// ---------- 2. Possessivartikel ----------
+const OWNERS = [['ich', 'mein'], ['du', 'dein'], ['er', 'sein'], ['sie (she)', 'ihr'], ['es', 'sein'], ['wir', 'unser'], ['ihr (you all)', 'euer'], ['sie (they)', 'ihr'], ['Sie (formal)', 'Ihr']];
+const ENDING = { N: { m: '', f: 'e', n: '', p: 'e' }, A: { m: 'en', f: 'e', n: '', p: 'e' }, D: { m: 'em', f: 'er', n: 'em', p: 'en' } };
+const GENDER = { m: 'maskulin', f: 'feminin', n: 'neutral', p: 'Plural' };
+const ART = { m: 'der', f: 'die', n: 'das', p: 'die' };
+const poss = (stem, c, g) => { const e = ENDING[c][g]; return (stem === 'euer' && e ? 'eur' : stem) + e; };
+const NOUNS = [
+  ['m', 'Hund'], ['m', 'Bruder'], ['m', 'Vater'], ['m', 'Freund'], ['m', 'Computer'], ['m', 'Schlüssel'],
+  ['f', 'Katze'], ['f', 'Schwester'], ['f', 'Mutter'], ['f', 'Tasche'], ['f', 'Freundin'],
+  ['n', 'Auto'], ['n', 'Buch'], ['n', 'Kind'], ['n', 'Haus'], ['n', 'Fahrrad'],
+  ['p', 'Kinder', 'Kindern'], ['p', 'Eltern', 'Eltern'], ['p', 'Freunde', 'Freunden'], ['p', 'Bücher', 'Büchern'], ['p', 'Schuhe', 'Schuhen'],
+];
+const POSS_FR = {
+  N: [['Das ist ___ {n}.', 'Das sind ___ {n}.', 'Das ist/sind … → Nominativ'], ['Wo ist ___ {n}?', 'Wo sind ___ {n}?', 'Subjekt → Nominativ'], ['___ {n} ist nicht hier.', '___ {n} sind nicht hier.', 'Subjekt → Nominativ']],
+  A: [['Anna sucht ___ {n}.', 0, 'suchen + Akkusativ'], ['Paul mag ___ {n}.', 0, 'mögen + Akkusativ'], ['Das ist für ___ {n}.', 0, 'für + Akkusativ'], ['Siehst du ___ {n}?', 0, 'sehen + Akkusativ']],
+  D: [['Paul spricht von ___ {n}.', 0, 'von + Dativ'], ['Anna erzählt von ___ {n}.', 0, 'von + Dativ'], ['Was ist mit ___ {n} passiert?', 0, 'mit + Dativ'], ['Paul träumt von ___ {n}.', 0, 'von + Dativ']],
+};
+function genPossSentence(cases) {
+  const c = rnd(cases), [lab, stem] = rnd(OWNERS), [g, noun, datPl] = rnd(NOUNS), [sg, pl, why] = rnd(POSS_FR[c]);
+  const word = c === 'D' && g === 'p' ? datPl : noun;
+  const t = (g === 'p' && pl ? pl : sg).replace('{n}', word), a = poss(stem, c, g);
+  return { tag: 'Possessivartikel · Satz', prompt: t, sub: `Besitzer: <b>${lab}</b> · ${ART[g]} ${noun} (${GENDER[g]})`, kind: 'input', answer: [a],
+    show: t.startsWith('___') ? cap(a) : a,
+    explain: `${why} → ${cspan(c, CASE[c])} · ${GENDER[g]} → <b>${stem === 'euer' ? 'eu(e)r' : stem}-${ENDING[c][g] || '∅'}</b>` +
+      (c === 'D' && g === 'p' ? '<br>Dativ Plural: the noun also gets <b>-n</b>.' : '') };
+}
+function genPossTable(cases) {
+  const c = rnd(cases), [lab, stem] = rnd(OWNERS), g = rnd(['m', 'f', 'n', 'p']), a = poss(stem, c, g);
+  return { tag: 'Possessivartikel · Tabelle', prompt: `${lab} · ${cspan(c, CASE[c])} · ${GENDER[g]}`, sub: `${stem}- + ?`, kind: 'input', answer: [a], show: a,
+    explain: `${cspan(c, CASE[c])} ${GENDER[g]} → Endung <b>-${ENDING[c][g] || '∅'}</b>` + (stem === 'euer' && ENDING[c][g] ? ' · euer loses its e: <b>eur-</b>' : '') };
+}
+function genPossEnding(cases) {
+  const c = rnd(cases), g = rnd(['m', 'f', 'n', 'p']), e = ENDING[c][g] || '∅ (no ending)';
+  return { tag: 'Possessivartikel · Endung', prompt: `${cspan(c, CASE[c])} · ${GENDER[g]}`, sub: 'Which ending? (mein__)', kind: 'multi',
+    groups: [{ options: ['∅ (no ending)', 'e', 'en', 'em', 'er'], answer: e }], explain: `mein → <b>${poss('mein', c, g)}</b> (same endings as ein / kein)` };
+}
+
+// ---------- 3. Präpositionen & Verbergänzungen ----------
+const VP = `warten|auf|A|to wait for|Ich warte ___ den Bus.
+sich freuen|auf|A|to look forward to|Ich freue mich ___ den Urlaub.
+sich freuen|über|A|to be happy about|Sie freut sich ___ das Geschenk.
+denken|an|A|to think of|Ich denke oft ___ dich.
+sich erinnern|an|A|to remember|Erinnerst du dich ___ den Film?
+sich interessieren|für|A|to be interested in|Er interessiert sich ___ Musik.
+sich kümmern|um|A|to take care of|Sie kümmert sich ___ die Kinder.
+sprechen|mit|D|to talk with|Ich spreche ___ meinem Chef.
+sprechen|über|A|to talk about|Wir sprechen ___ das Problem.
+träumen|von|D|to dream of|Er träumt ___ einem Haus am Meer.
+teilnehmen|an|D|to take part in|Ich nehme ___ dem Kurs teil.
+Angst haben|vor|D|to be afraid of|Das Kind hat Angst ___ dem Hund.
+sich ärgern|über|A|to be annoyed about|Ich ärgere mich ___ den Lärm.
+bitten|um|A|to ask for (a favour)|Darf ich Sie ___ Hilfe bitten?
+danken|für|A|to thank for|Ich danke dir ___ die Einladung.
+sich bewerben|um|A|to apply for|Sie bewirbt sich ___ die Stelle.
+sich entschuldigen|für|A|to apologise for|Er entschuldigt sich ___ den Fehler.
+fragen|nach|D|to ask about|Der Tourist fragt ___ dem Weg.
+gehören|zu|D|to be part of|Das gehört ___ meiner Arbeit.
+sich gewöhnen|an|A|to get used to|Ich gewöhne mich ___ das Wetter.
+glauben|an|A|to believe in|Ich glaube ___ dich.
+hoffen|auf|A|to hope for|Wir hoffen ___ gutes Wetter.
+sich konzentrieren|auf|A|to concentrate on|Ich konzentriere mich ___ die Prüfung.
+lachen|über|A|to laugh about|Alle lachen ___ den Witz.
+nachdenken|über|A|to reflect on|Ich denke ___ das Angebot nach.
+sich treffen|mit|D|to meet with|Ich treffe mich ___ meinen Freunden.
+sich verlieben|in|A|to fall in love with|Er hat sich ___ sie verliebt.
+sich vorbereiten|auf|A|to prepare for|Sie bereitet sich ___ das Interview vor.
+anfangen|mit|D|to start with|Wir fangen ___ der Übung an.
+aufhören|mit|D|to stop (doing sth.)|Hör bitte ___ dem Lärm auf!
+abhängen|von|D|to depend on|Das hängt ___ dem Wetter ab.
+achten|auf|A|to pay attention to|Achte bitte ___ die Regeln!
+antworten|auf|A|to reply to (sth.)|Er antwortet nicht ___ meine E-Mail.
+sich beschweren|über|A|to complain about|Der Gast beschwert sich ___ das Essen.
+einladen|zu|D|to invite to|Ich lade dich ___ meiner Party ein.
+erzählen|von|D|to tell about|Sie erzählt ___ ihrer Reise.
+helfen|bei|D|to help with|Kannst du mir ___ den Hausaufgaben helfen?
+schmecken|nach|D|to taste of|Das Eis schmeckt ___ Vanille.
+streiten|mit|D|to argue with|Er streitet oft ___ seinem Bruder.
+telefonieren|mit|D|to talk on the phone with|Ich telefoniere ___ meiner Mutter.
+zweifeln|an|D|to doubt|Ich zweifle ___ seiner Geschichte.
+leiden|unter|D|to suffer from (circumstances)|Viele leiden ___ dem Stress.
+diskutieren|über|A|to discuss|Wir diskutieren ___ Politik.
+sich beschäftigen|mit|D|to deal with / be busy with|Ich beschäftige mich ___ dem Thema.
+suchen|nach|D|to search for|Die Polizei sucht ___ dem Dieb.
+sorgen|für|A|to provide for|Die Eltern sorgen ___ ihre Kinder.
+gratulieren|zu|D|to congratulate on|Ich gratuliere dir ___ deinem Geburtstag.
+sich informieren|über|A|to find out about|Ich informiere mich ___ die Preise.`.split('\n').map(l => l.split('|'));
+const PREPS = ['an', 'auf', 'bei', 'für', 'in', 'mit', 'nach', 'über', 'um', 'unter', 'von', 'vor', 'zu'];
+
+function genVerbPrep() {
+  const [verb, prep, c, en, s] = rnd(VP);
+  const opts = shuffle([prep, ...shuffle(PREPS.filter(p => p !== prep)).slice(0, 4)]);
+  return { tag: 'Verb + Präposition', key: verb + prep, prompt: s, sub: `<b>${verb}</b> — ${en}`, kind: 'multi', fill: prep,
+    groups: [{ label: 'Präposition', options: opts, answer: prep }, { label: 'Kasus danach', options: ['Akkusativ', 'Dativ'], answer: CASE[c] }],
+    explain: `<b>${verb} ${prep}</b> + ${cspan(c, CASE[c])}` };
+}
+
+const VC = `helfen|D|to help|Ich helfe dir.
+danken|D|to thank|Ich danke Ihnen.
+gehören|D|to belong to|Das Buch gehört mir.
+gefallen|D|to please (to like)|Der Film gefällt mir.
+schmecken|D|to taste good to|Die Suppe schmeckt dem Kind.
+antworten|D|to answer (a person)|Antworte mir bitte!
+gratulieren|D|to congratulate|Wir gratulieren dir.
+glauben|D|to believe (a person)|Ich glaube dir.
+folgen|D|to follow|Folgen Sie mir!
+passen|D|to fit / suit|Die Hose passt mir.
+fehlen|D|to be missing (to miss)|Du fehlst mir.
+vertrauen|D|to trust|Ich vertraue dir.
+zuhören|D|to listen to|Hör mir zu!
+begegnen|D|to run into|Ich bin ihm begegnet.
+wehtun|D|to hurt|Mein Kopf tut mir weh.
+passieren|D|to happen to|Was ist dir passiert?
+widersprechen|D|to contradict|Er widerspricht dem Chef.
+sehen|A|to see|Ich sehe den Mann.
+brauchen|A|to need|Ich brauche einen Stift.
+kaufen|A|to buy|Sie kauft einen Mantel.
+besuchen|A|to visit|Wir besuchen die Oma.
+fragen|A|to ask (a person)|Ich frage den Lehrer.
+lieben|A|to love|Er liebt seinen Hund.
+kennen|A|to know (be familiar with)|Kennst du den Film?
+anrufen|A|to call (phone)|Ich rufe dich an.
+treffen|A|to meet|Ich treffe einen Freund.
+verstehen|A|to understand|Ich verstehe dich nicht.
+suchen|A|to look for|Ich suche meinen Schlüssel.
+finden|A|to find|Ich finde den Weg nicht.
+bestellen|A|to order|Ich bestelle einen Kaffee.
+haben|A|to have|Ich habe einen Bruder.
+bekommen|A|to get|Er bekommt einen Brief.
+vergessen|A|to forget|Ich vergesse den Termin nie.
+geben|DA|to give|Ich gebe dem Kind (D) einen Apfel (A).
+schenken|DA|to give as a present|Sie schenkt ihm (D) ein Buch (A).
+zeigen|DA|to show|Zeig mir (D) den Weg (A)!
+bringen|DA|to bring|Er bringt der Frau (D) den Kaffee (A).
+schicken|DA|to send|Ich schicke dir (D) eine E-Mail (A).
+erklären|DA|to explain|Sie erklärt uns (D) die Regel (A).
+leihen|DA|to lend|Leihst du mir (D) dein Auto (A)?
+empfehlen|DA|to recommend|Ich empfehle dir (D) den Film (A).
+erzählen|DA|to tell|Er erzählt den Kindern (D) eine Geschichte (A).
+wünschen|DA|to wish|Ich wünsche dir (D) viel Glück (A).
+sein|N|to be|Er ist ein guter Lehrer.
+werden|N|to become|Sie wird Ärztin. / Er wird ein guter Koch.
+bleiben|N|to stay / remain|Er bleibt mein Freund.`.split('\n').map(l => l.split('|'));
+const VC_LAB = { N: 'Nominativ', A: 'Akkusativ', D: 'Dativ', DA: 'Dativ + Akkusativ' };
+const VC_WHY = { N: 'Like an “=” sign: both sides are Nominativ.', A: 'Wen oder was? → Akkusativ (the usual case).', D: 'Wem? → Dativ. Dative verbs have to be memorised.', DA: 'Wem? (person) → Dativ · Was? (thing) → Akkusativ.' };
+function genVerbCase() {
+  const [verb, t, en, ex] = rnd(VC);
+  return { tag: 'Verb + Kasus', key: verb, prompt: verb, sub: `${en} — which case does the object take?`, kind: 'multi',
+    groups: [{ options: Object.values(VC_LAB), answer: VC_LAB[t] }], explain: `<b>${verb}</b> + ${VC_LAB[t]}<br><i>${ex}</i><br>${VC_WHY[t]}` };
+}
+
+const PC = { A: ['durch', 'für', 'gegen', 'ohne', 'um', 'bis'], D: ['aus', 'bei', 'mit', 'nach', 'seit', 'von', 'zu', 'außer', 'gegenüber'], W: ['an', 'auf', 'hinter', 'in', 'neben', 'über', 'unter', 'vor', 'zwischen'] };
+const PC_LAB = { A: 'Akkusativ', D: 'Dativ', W: 'Wechsel (Akk. / Dat.)' };
+const PC_WHY = {
+  A: `Immer ${cspan('A', 'Akkusativ')}: durch, für, gegen, ohne, um, bis`,
+  D: `Immer ${cspan('D', 'Dativ')}: aus, bei, mit, nach, seit, von, zu (+ außer, gegenüber)`,
+  W: `Wechselpräpositionen: an, auf, hinter, in, neben, über, unter, vor, zwischen<br>Wohin? (movement to) → ${cspan('A', 'Akkusativ')} · Wo? (location) → ${cspan('D', 'Dativ')}`,
+};
+function genPrepCase() {
+  const t = rnd(['A', 'D', 'W']), p = rnd(PC[t]);
+  return { tag: 'Präposition + Kasus', key: p, prompt: p, sub: 'Which case follows this preposition?', kind: 'multi',
+    groups: [{ options: Object.values(PC_LAB), answer: PC_LAB[t] }], explain: PC_WHY[t] };
+}
+
+const ARTS = `Ich helfe ___ Frau.|die Frau|der|D|helfen + Dativ
+Ich danke ___ Lehrer.|der Lehrer|dem|D|danken + Dativ
+Das Auto gehört ___ Nachbarin.|die Nachbarin|der|D|gehören + Dativ
+Er antwortet ___ Chef.|der Chef|dem|D|antworten + Dativ
+Wir gratulieren ___ Kollegin.|die Kollegin|der|D|gratulieren + Dativ
+Die Pizza schmeckt ___ Kindern.|die Kinder (Plural)|den|D|schmecken + Dativ (Plural: den + -n)
+Ich gebe ___ Kind einen Apfel.|das Kind|dem|D|geben: wem? → Dativ
+Wir besuchen ___ Großmutter.|die Großmutter|die|A|besuchen + Akkusativ
+Ich brauche ___ Schlüssel.|der Schlüssel|den|A|brauchen + Akkusativ
+Er fragt ___ Lehrerin.|die Lehrerin|die|A|fragen + Akkusativ
+Sie kauft ___ Buch.|das Buch|das|A|kaufen + Akkusativ
+Ich rufe ___ Arzt an.|der Arzt|den|A|anrufen + Akkusativ
+Ich fahre mit ___ Bus.|der Bus|dem|D|mit + Dativ
+Das Geschenk ist für ___ Vater.|der Vater|den|A|für + Akkusativ
+Wir gehen durch ___ Park.|der Park|den|A|durch + Akkusativ
+Sie kommt aus ___ Schule.|die Schule|der|D|aus + Dativ
+Nach ___ Arbeit gehe ich nach Hause.|die Arbeit|der|D|nach + Dativ
+Ohne ___ Jacke gehe ich nicht raus.|die Jacke|die|A|ohne + Akkusativ
+Seit ___ Unfall fährt er nicht mehr Auto.|der Unfall|dem|D|seit + Dativ
+Er läuft gegen ___ Tür.|die Tür|die|A|gegen + Akkusativ
+Ich gehe in ___ Park.|der Park|den|A|in + Wohin? → Akkusativ
+Ich bin in ___ Park.|der Park|dem|D|in + Wo? → Dativ (in dem = im)
+Ich lege das Buch auf ___ Tisch.|der Tisch|den|A|auf + Wohin? (legen) → Akkusativ
+Das Buch liegt auf ___ Tisch.|der Tisch|dem|D|auf + Wo? (liegen) → Dativ
+Die Lampe hängt über ___ Sofa.|das Sofa|dem|D|über + Wo? → Dativ
+Ich hänge das Bild an ___ Wand.|die Wand|die|A|an + Wohin? (hängen) → Akkusativ
+Das Bild hängt an ___ Wand.|die Wand|der|D|an + Wo? → Dativ
+Die Katze sitzt unter ___ Stuhl.|der Stuhl|dem|D|unter + Wo? (sitzen) → Dativ
+Ich stelle die Flasche in ___ Kühlschrank.|der Kühlschrank|den|A|in + Wohin? (stellen) → Akkusativ
+Die Flasche steht in ___ Kühlschrank.|der Kühlschrank|dem|D|in + Wo? (stehen) → Dativ
+Das Auto steht vor ___ Haus.|das Haus|dem|D|vor + Wo? → Dativ
+Ich warte auf ___ Bus.|der Bus|den|A|warten auf + Akkusativ
+Er träumt von ___ Reise.|die Reise|der|D|träumen von + Dativ
+Ich denke an ___ Urlaub.|der Urlaub|den|A|denken an + Akkusativ
+Sie interessiert sich für ___ Film.|der Film|den|A|sich interessieren für + Akkusativ
+Er nimmt an ___ Kurs teil.|der Kurs|dem|D|teilnehmen an + Dativ`.split('\n').map(l => l.split('|'));
+function genArticle() {
+  const [t, noun, a, c, why] = rnd(ARTS);
+  return { tag: 'Artikel einsetzen', prompt: t, sub: `(${noun})`, kind: 'input', answer: [a], show: t.startsWith('___') ? cap(a) : a,
+    explain: `${why} → ${cspan(c, CASE[c])}<br>der / die / das / die → ${cspan('A', 'den / die / das / die')} → ${cspan('D', 'dem / der / dem / den')}` };
+}
+
+// ---------- 4. Satzbau ----------
+// parts: "*" marks the conjugated verb, "+" the infinitive / participle. pre = text shown before the tiles.
+const RULES = {
+  modal: 'Hauptsatz mit Modalverb: <span class="v">Modalverb</span> auf Position 2 (konjugiert), <span class="inf">Infinitiv</span> ganz am Ende.',
+  modalq: 'Ja/Nein-Frage: <span class="v">Modalverb</span> auf Position 1, <span class="inf">Infinitiv</span> am Ende. W-Frage: W-Wort, dann <span class="v">Modalverb</span>.',
+  inv: 'Steht etwas anderes auf Position 1 (Zeit, Ort …), bleibt das <span class="v">Verb</span> auf Position 2 — das Subjekt rückt dahinter.',
+  neben: 'Nebensatz: Konjunktion zuerst, das <span class="v">konjugierte Verb</span> ganz am Ende.',
+  sep: 'Nebensatz: <span class="v">Verb</span> am Ende — trennbare Verben stehen dort wieder zusammen (kommt … an → ankommt).',
+  perf: 'Nebensatz im Perfekt: <span class="inf">Partizip</span> + <span class="v">haben/sein</span> am Ende (das konjugierte Verb ist das letzte Wort).',
+  first: 'Nebensatz zuerst = Position 1. Der Hauptsatz beginnt dann direkt mit dem <span class="v">Verb</span>: „…, <span class="v">Verb</span> + Subjekt …“',
+  nmodal: 'Nebensatz mit Modalverb: <span class="inf">Infinitiv</span> + <span class="v">Modalverb</span> am Ende — das konjugierte Modalverb ist das allerletzte Wort.',
+};
+const S = (set, rule, en, parts, pre = '', end = '.', lock = false) => ({ set, rule, en, pre, end, lock,
+  tiles: parts.split('|').map(p => ({ t: p.replace(/^[*+]/, ''), role: p[0] === '*' ? 'v' : p[0] === '+' ? 'inf' : '' })) });
+const SENT = [
+  S('modal', 'modal', "I can't come today.", 'Ich|*kann|heute|nicht|+kommen', '', '.', true),
+  S('modal', 'modal', 'We have to get up early tomorrow.', 'Wir|*müssen|morgen früh|+aufstehen', '', '.', true),
+  S('modal', 'inv', 'Today I want to watch a film.', 'Heute|*will|ich|einen Film|+sehen', '', '.', true),
+  S('modal', 'modal', 'You should drink more water.', 'Du|*sollst|mehr Wasser|+trinken', '', '.', true),
+  S('modal', 'inv', 'You are not allowed to smoke here.', 'Hier|*darf|man|nicht|+rauchen', '', '.', true),
+  S('modal', 'inv', "At the weekend I'd like to visit my parents.", 'Am Wochenende|*möchte|ich|meine Eltern|+besuchen', '', '.', true),
+  S('modal', 'modalq', 'Can you help me, please?', '*Kannst|du|mir|bitte|+helfen', '', '?'),
+  S('modal', 'modal', 'My sister can play the piano very well.', 'Meine Schwester|*kann|sehr gut|Klavier|+spielen', '', '.', true),
+  S('modal', 'inv', 'Tomorrow he has to go to the doctor.', 'Morgen|*muss|er|zum Arzt|+gehen', '', '.', true),
+  S('modal', 'modal', 'You (all) may go home now.', 'Ihr|*dürft|jetzt|nach Hause|+gehen', '', '.', true),
+  S('modal', 'modalq', 'When do you have to work tomorrow?', 'Wann|*musst|du|morgen|+arbeiten', '', '?', true),
+  S('modal', 'modal', "I'd like to order a coffee.", 'Ich|*möchte|einen Kaffee|+bestellen', '', '.', true),
+  S('modal', 'inv', 'After work she wants to do sports.', 'Nach der Arbeit|*will|sie|Sport|+machen', '', '.', true),
+  S('modal', 'modalq', 'May I open the window?', '*Darf|ich|das Fenster|+öffnen', '', '?'),
+  S('modal', 'modal', 'One should eat fruit every day.', 'Man|*soll|jeden Tag|Obst|+essen', '', '.', true),
+
+  S('neben', 'neben', "I'm staying home because I am ill.", 'weil|ich|krank|*bin', 'Ich bleibe zu Hause,'),
+  S('neben', 'neben', 'I know that you are right.', 'dass|du|recht|*hast', 'Ich weiß,'),
+  S('neben', 'neben', "He isn't coming because he has no time.", 'weil|er|keine Zeit|*hat', 'Er kommt nicht,'),
+  S('neben', 'neben', "I'll call you when I'm home.", 'wenn|ich|zu Hause|*bin', 'Ich rufe dich an,'),
+  S('neben', 'neben', "She goes for a walk although it's raining.", 'obwohl|es|*regnet', 'Sie geht spazieren,'),
+  S('neben', 'neben', 'I think that the film starts at eight.', 'dass|der Film|um acht|*beginnt', 'Ich glaube,'),
+  S('neben', 'neben', 'Do you know whether Anna is coming today?', 'ob|Anna|heute|*kommt', 'Weißt du,', '?'),
+  S('neben', 'neben', "I'm learning German because I work in Germany.", 'weil|ich|in Deutschland|*arbeite', 'Ich lerne Deutsch,'),
+  S('neben', 'sep', "I don't know when the train arrives.", 'wann|der Zug|*ankommt', 'Ich weiß nicht,'),
+  S('neben', 'sep', "He says that he'll call tomorrow.", 'dass|er|morgen|*anruft', 'Er sagt,'),
+  S('neben', 'first', "Because I'm ill, I'm staying home.", '*bleibe|ich|zu Hause', 'Weil ich krank bin,'),
+  S('neben', 'first', 'When it rains, I take the bus.', '*nehme|ich|den Bus', 'Wenn es regnet,'),
+  S('neben', 'first', "Although he's tired, he goes to the cinema.", '*geht|er|ins Kino', 'Obwohl er müde ist,'),
+  S('neben', 'perf', 'I was happy when I saw you.', 'als|ich|dich|+gesehen|*habe', 'Ich war glücklich,'),
+  S('neben', 'neben', 'I brush my teeth before I go to bed.', 'bevor|ich|ins Bett|*gehe', 'Ich putze mir die Zähne,'),
+  S('neben', 'perf', "She's tired because she slept badly.", 'weil|sie|schlecht|+geschlafen|*hat', 'Sie ist müde,'),
+
+  S('nmodal', 'nmodal', "I'm staying home because I have to work.", 'weil|ich|+arbeiten|*muss', 'Ich bleibe zu Hause,'),
+  S('nmodal', 'nmodal', "He says that he can't come.", 'dass|er|nicht|+kommen|*kann', 'Er sagt,'),
+  S('nmodal', 'nmodal', 'I study a lot because I want to pass the exam.', 'weil|ich|die Prüfung|+bestehen|*will', 'Ich lerne viel,'),
+  S('nmodal', 'nmodal', 'She asks whether she may park here.', 'ob|sie|hier|+parken|*darf', 'Sie fragt,'),
+  S('nmodal', 'nmodal', 'I know that you can cook well.', 'dass|du|gut|+kochen|*kannst', 'Ich weiß,'),
+  S('nmodal', 'nmodal', "We're going to a restaurant because we don't want to cook.", 'weil|wir|nicht|+kochen|*wollen', 'Wir gehen ins Restaurant,'),
+  S('nmodal', 'nmodal', "I'm sad because I'm not allowed to come along.", 'weil|ich|nicht|+mitkommen|*darf', 'Ich bin traurig,'),
+  S('nmodal', 'nmodal', "He's learning German because he'd like to study in Berlin.", 'weil|er|in Berlin|+studieren|*möchte', 'Er lernt Deutsch,'),
+  S('nmodal', 'nmodal', 'The doctor says that I should sleep more.', 'dass|ich|mehr|+schlafen|*soll', 'Der Arzt sagt,'),
+  S('nmodal', 'nmodal', "I'll come later if I have to work longer.", 'wenn|ich|länger|+arbeiten|*muss', 'Ich komme später,'),
+  S('nmodal', 'first', "Because I have to get up early, I'm going to bed now.", '*gehe|ich|jetzt|ins Bett', 'Weil ich früh aufstehen muss,'),
+  S('nmodal', 'first', 'If you want to learn German, you have to speak a lot.', '*musst|du|viel|+sprechen', 'Wenn du Deutsch lernen willst,'),
+  S('nmodal', 'nmodal', "I don't know whether I can come tomorrow.", 'ob|ich|morgen|+kommen|*kann', 'Ich weiß nicht,'),
+  S('nmodal', 'nmodal', "She's taking a taxi because she has to be on time.", 'weil|sie|pünktlich|+sein|*muss', 'Sie nimmt ein Taxi,'),
+];
+const SET_LAB = { modal: 'Modalverben', neben: 'Nebensatz', nmodal: 'Nebensatz + Modalverb' };
+const genBuild = set => () => {
+  const s = rnd(SENT.filter(x => x.set === set));
+  return { ...s, kind: 'build', tag: 'Satzbau · ' + SET_LAB[set], key: s.en, prompt: s.en, sub: 'Put the words in the right order.', explain: RULES[s.rule] };
+};
+function genVerbPos() {
+  const q = rnd([
+    ['Hauptsatz (Aussage)', 'Position 2', 'Ich <span class="v">gehe</span> heute ins Kino.'],
+    ['Hauptsatz mit Modalverb — wo steht das Modalverb?', 'Position 2', 'Ich <span class="v">will</span> heute ins Kino <span class="inf">gehen</span>.'],
+    ['Hauptsatz mit Modalverb — wo steht der Infinitiv?', 'am Ende', 'Ich <span class="v">will</span> heute ins Kino <span class="inf">gehen</span>.'],
+    ['Ja/Nein-Frage', 'Position 1', '<span class="v">Gehst</span> du heute ins Kino?'],
+    ['W-Frage', 'Position 2', 'Wann <span class="v">gehst</span> du ins Kino?'],
+    ['Nebensatz (weil, dass, wenn, ob …) — konjugiertes Verb', 'am Ende', '…, weil ich heute ins Kino <span class="v">gehe</span>.'],
+    ['Nebensatz mit Modalverb — wo steht das Modalverb?', 'am Ende', '…, weil ich ins Kino <span class="inf">gehen</span> <span class="v">will</span>.'],
+    ['Hauptsatz NACH einem Nebensatz — wo steht das Verb?', 'Position 1', 'Weil ich Zeit habe, <span class="v">gehe</span> ich ins Kino. (The whole Nebensatz counts as position 1 of the sentence.)'],
+    ['Hauptsatz mit „Heute“ auf Position 1 — wo steht das Verb?', 'Position 2', 'Heute <span class="v">gehe</span> ich ins Kino.'],
+    ['Nach „und / aber / oder / denn“ — wo steht das Verb?', 'Position 2', '…, denn ich <span class="v">habe</span> Zeit. (These conjunctions are “position 0” — normal word order.)'],
+    ['Nebensatz im Perfekt — wo steht „haben/sein“?', 'am Ende', '…, weil ich den Film <span class="inf">gesehen</span> <span class="v">habe</span>.'],
+  ]);
+  return { tag: 'Satzbau · Wo steht das Verb?', key: q[0], prompt: q[0], sub: 'Position of the verb (in the clause)?', kind: 'multi',
+    groups: [{ options: ['Position 1', 'Position 2', 'am Ende'], answer: q[1] }], explain: q[2] };
+}
+
+// ---------- cheat sheets ----------
+const REF = {
+  pron: () => `<table><tr><th class="N">Nominativ</th><th class="A">Akkusativ</th><th class="D">Dativ</th></tr>` +
+    PRON.map(p => `<tr><td class="N">${p.lab}</td><td class="A">${p.a}</td><td class="D">${p.d}</td></tr>`).join('') + `</table>
+    <p>Only <b>ich, du, er</b> and <b>wir, ihr</b> change in the Akkusativ — sie / es / sie / Sie stay the same.</p>
+    <p>Dativ endings echo the article: de<b>m</b> → ih<b>m</b>, de<b>r</b> → ih<b>r</b>, de<b>n</b> → ihne<b>n</b>.</p>`,
+  poss: () => `<table><tr><th></th><th>maskulin</th><th>feminin</th><th>neutral</th><th>Plural</th></tr>` +
+    ['N', 'A', 'D'].map(c => `<tr><td class="${c}">${CASE[c]}</td>` + ['m', 'f', 'n', 'p'].map(g => `<td class="${c}">mein${ENDING[c][g] ? '<b>' + ENDING[c][g] + '</b>' : ''}</td>`).join('') + '</tr>').join('') + `</table>
+    <p>${OWNERS.map(([l, s]) => `${l.split(' ')[0]} → <b>${s}</b>`).join(' · ')}</p>
+    <p>Same endings as <b>ein / kein</b>. Only maskulin changes in the Akkusativ (<b>-en</b>). <b>euer</b> + ending → <b>eur-</b> (eure, euren, eurem, eurer). Dativ Plural: noun gets <b>-n</b> (mit meinen Kinder<b>n</b>).</p>`,
+  prep: () => `<h4>Präpositionen</h4><p>${PC_WHY.A}</p><p>${PC_WHY.D}</p><p>${PC_WHY.W}</p>
+    <h4>Verben mit Dativ</h4><p>${VC.filter(v => v[1] === 'D').map(v => v[0]).join(', ')}</p>
+    <h4>Verben mit Dativ + Akkusativ</h4><p>${VC.filter(v => v[1] === 'DA').map(v => v[0]).join(', ')}</p>
+    <h4>Verben mit Präposition</h4><table>` + [...VP].sort((a, b) => a[1].localeCompare(b[1])).map(v => `<tr><td>${v[0]} <b>${v[1]}</b></td><td class="${v[2]}">${CASE[v[2]]}</td><td>${v[3]}</td></tr>`).join('') + '</table>',
+  satz: () => `<h4>Hauptsatz</h4><div class="schema"><span>Ich</span><span class="v">gehe</span><span>heute ins Kino</span></div>
+    <h4>Hauptsatz + Modalverb</h4><div class="schema"><span>Ich</span><span class="v">will</span><span>heute ins Kino</span><span class="inf">gehen</span></div>
+    <h4>Nebensatz</h4><div class="schema"><span>…, weil</span><span>ich</span><span>heute ins Kino</span><span class="v">gehe</span></div>
+    <h4>Nebensatz + Modalverb</h4><div class="schema"><span>…, weil</span><span>ich</span><span>heute ins Kino</span><span class="inf">gehen</span><span class="v">will</span></div>
+    <h4>Nebensatz zuerst</h4><div class="schema"><span>Weil ich Zeit habe,</span><span class="v">gehe</span><span>ich</span><span>ins Kino</span></div>
+    <p><b>Verb am Ende</b> nach: weil, dass, wenn, ob, obwohl, als, bevor, nachdem, damit, während, bis + W-Wörter (indirekte Frage).</p>
+    <p><b>Normale Wortstellung</b> (Position 0) nach: und, aber, oder, denn, sondern.</p>
+    <p>Modalverben: können, müssen, wollen, dürfen, sollen, möchten.</p>`,
+};
+
+// ---------- features ----------
+const FEATURES = [
+  { id: 'pron', title: 'Personalpronomen', sub: 'ich · mich · mir', cases: true,
+    modes: [['Sätze', genPronSentence], ['Tabelle', genPronTable], ['Welcher Kasus?', genPronReverse]] },
+  { id: 'poss', title: 'Possessivartikel', sub: 'mein · meinen · meinem', cases: true,
+    modes: [['Sätze', genPossSentence], ['Tabelle', genPossTable], ['Endungen', genPossEnding]] },
+  { id: 'prep', title: 'Präpositionen & Verben', sub: 'warten auf + Akk.',
+    modes: [['Verb + Präposition', genVerbPrep], ['Verb + Kasus', genVerbCase], ['Präposition + Kasus', genPrepCase], ['Artikel einsetzen', genArticle]] },
+  { id: 'satz', title: 'Satzbau', sub: 'Nebensatz · Modalverben',
+    modes: [['Modalverben', genBuild('modal')], ['Nebensatz', genBuild('neben')], ['Nebensatz + Modal', genBuild('nmodal')], ['Wo steht das Verb?', genVerbPos]] },
+];
+
+// ---------- state ----------
+const store = { get() { try { return JSON.parse(localStorage.getItem('grammatik') || '{}'); } catch { return {}; } }, set(v) { try { localStorage.setItem('grammatik', JSON.stringify(v)); } catch {} } };
+const saved = store.get();
+const state = { f: saved.f || 0, mode: saved.mode || {}, cases: saved.cases || ['N', 'A', 'D'], stats: saved.stats || {}, streak: 0, n: 0, retry: [], lastKey: '' };
+let cur = null;
+const save = () => store.set({ f: state.f, mode: state.mode, cases: state.cases, stats: state.stats });
+const feat = () => FEATURES[state.f];
+const modeIdx = () => state.mode[feat().id] ?? 0; // index into modes, or 'mix'
+
+function nextQuestion() {
+  state.n++;
+  const due = state.retry.findIndex(r => r.due <= state.n);
+  if (due >= 0) return state.retry.splice(due, 1)[0].q;
+  const F = feat(), m = modeIdx();
+  let q;
+  for (let i = 0; i < 8; i++) {
+    const gen = m === 'mix' ? rnd(F.modes)[1] : F.modes[m][1];
+    q = gen(state.cases);
+    q.key = q.key || q.prompt + (q.sub || '');
+    if (q.key !== state.lastKey) break;
+  }
+  state.lastKey = q.key;
+  return q;
+}
+
+// ---------- rendering ----------
+function renderChrome() {
+  $('#nav').innerHTML = FEATURES.map((F, i) => `<button class="${i === state.f ? 'on' : ''}" data-f="${i}"><b>${F.title}</b><span>${F.sub}</span></button>`).join('');
+  const F = feat(), m = modeIdx();
+  let h = `<div class="chips"><small>Übung</small>` + F.modes.map(([l], i) => `<button class="chip ${m === i ? 'on' : ''}" data-m="${i}">${l}</button>`).join('') +
+    `<button class="chip ${m === 'mix' ? 'on' : ''}" data-m="mix">Mix</button></div>`;
+  if (F.cases) h += `<div class="chips"><small>Kasus</small>` + ['N', 'A', 'D'].map(c => `<button class="chip ${c} ${state.cases.includes(c) ? 'on' : ''}" data-c="${c}">${CASE[c]}</button>`).join('') + '</div>';
+  $('#controls').innerHTML = h;
+  $('#ref').innerHTML = REF[F.id]();
+  renderStats();
+}
+function renderStats() {
+  const s = state.stats[feat().id] || { c: 0, t: 0 };
+  $('#stats').innerHTML = `${s.c} / ${s.t} richtig${s.t ? ` (${Math.round(100 * s.c / s.t)}%)` : ''} · Serie ${state.streak}<br><button id="reset">reset</button>`;
+}
+const gapHtml = (t, fill) => t.replace('___', fill ? `<span class="gap filled">${fill}</span>` : '<span class="gap">&nbsp;</span>');
+
+function showQuestion(q) {
+  cur = { q, done: false, sel: [], placed: [], bank: [] };
+  let h = `<div class="tag">${q.tag}</div><div class="prompt" id="prompt">${gapHtml(q.prompt)}</div>`;
+  if (q.sub) h += `<div class="sub">${q.sub}</div>`;
+  if (q.kind === 'input') {
+    h += `<div class="row"><input type="text" id="ans" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Antwort …"><button class="btn" id="check">Prüfen</button></div>`;
+  } else if (q.kind === 'multi') {
+    h += q.groups.map((g, gi) => `<div class="group">${g.label ? `<label>${g.label}</label>` : ''}<div class="opts">` +
+      g.options.map((o, oi) => `<button class="opt" data-g="${gi}" data-o="${oi}">${o}</button>`).join('') + '</div></div>').join('');
+  } else {
+    const idx = q.tiles.map((_, i) => i);
+    if (q.lock) cur.placed = [0];
+    let bank = idx.filter(i => !cur.placed.includes(i));
+    do { bank = shuffle(bank); } while (bank.length > 1 && bank.every((v, i) => i === 0 || v > bank[i - 1]));
+    cur.bank = bank;
+    h += `<div class="line" id="line"></div><div class="bank" id="bank"></div><div class="row"><button class="btn" id="check" disabled>Prüfen</button><button class="btn ghost" id="clear">Zurücksetzen</button></div>`;
+  }
+  h += `<div id="fb"></div><div class="hint">${q.kind === 'multi' ? '<kbd>1</kbd>–<kbd>5</kbd> wählen · ' : ''}<kbd>Enter</kbd> prüfen / weiter</div>`;
+  $('#card').innerHTML = h;
+  if (q.kind === 'build') drawBuild();
+  const a = $('#ans'); if (a) a.focus();
+}
+
+function drawBuild() {
+  const q = cur.q, dis = cur.done ? 'disabled' : '';
+  $('#line').innerHTML = (q.pre ? `<span class="pre">${q.pre}</span>` : '') +
+    cur.placed.map(i => `<button class="tile ${q.lock && i === 0 ? 'locked' : ''}" data-p="${i}" ${dis}>${q.tiles[i].t}</button>`).join('') + `<span class="pre">${q.end}</span>`;
+  $('#bank').innerHTML = cur.bank.map(i => `<button class="tile" data-b="${i}" ${dis}>${q.tiles[i].t}</button>`).join('');
+  $('#check').disabled = cur.done || cur.bank.length > 0;
+}
+
+function finish(ok, solution) {
+  const q = cur.q; cur.done = true;
+  const s = state.stats[feat().id] = state.stats[feat().id] || { c: 0, t: 0 };
+  if (!q.isRetry) { s.t++; if (ok) s.c++; }
+  state.streak = ok ? state.streak + 1 : 0;
+  if (!ok) state.retry.push({ q: { ...q, isRetry: true }, due: state.n + 3 });
+  save(); renderStats();
+  $('#fb').innerHTML = `<div class="fb ${ok ? 'ok' : 'bad'}"><h3>${ok ? 'Richtig! ✓' : 'Leider falsch ✗'}</h3>` +
+    (solution ? `<div class="sol">${solution}</div>` : '') + `<p>${q.explain || ''}</p>` + (ok ? '' : '<p><small>This one comes back in a few questions.</small></p>') +
+    `</div><div class="row"><button class="btn" id="next">Weiter →</button></div>`;
+  document.querySelectorAll('#card .opt, #card input, #check, #clear').forEach(e => e.disabled = true);
+  $('#next').focus();
+}
+
+function check() {
+  if (!cur || cur.done) return;
+  const q = cur.q;
+  if (q.kind === 'input') {
+    const v = norm($('#ans').value); if (!v) return;
+    const ok = q.answer.some(a => norm(a) === v);
+    $('#prompt').innerHTML = gapHtml(q.prompt, q.show);
+    finish(ok, ok ? '' : gapHtml(q.prompt, q.show).replace('gap filled', ''));
+  } else if (q.kind === 'multi') {
+    if (q.groups.some((_, gi) => cur.sel[gi] == null)) return;
+    let ok = true;
+    q.groups.forEach((g, gi) => {
+      const right = g.options.indexOf(g.answer);
+      if (cur.sel[gi] !== right) ok = false;
+      document.querySelectorAll(`.opt[data-g="${gi}"]`).forEach((b, oi) => {
+        if (oi === right) b.classList.add('right'); else if (oi === cur.sel[gi]) b.classList.add('wrong');
+      });
+    });
+    if (q.fill) $('#prompt').innerHTML = gapHtml(q.prompt, q.fill);
+    finish(ok, '');
+  } else {
+    if (cur.bank.length) return;
+    const ok = cur.placed.map(i => q.tiles[i].t).join(' ') === q.tiles.map(t => t.t).join(' ');
+    const sol = (q.pre ? q.pre + ' ' : '') + q.tiles.map(t => t.role ? `<span class="${t.role}">${t.t}</span>` : t.t).join(' ') + q.end;
+    cur.done = true; drawBuild();
+    finish(ok, sol);
+  }
+}
+function next() { showQuestion(nextQuestion()); }
+function restart() { state.retry = []; state.streak = 0; renderChrome(); next(); }
+
+// ---------- events ----------
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const d = b.dataset;
+  if (d.f != null) { state.f = +d.f; save(); restart(); }
+  else if (d.m != null) { state.mode[feat().id] = d.m === 'mix' ? 'mix' : +d.m; save(); restart(); }
+  else if (d.c) {
+    const has = state.cases.includes(d.c);
+    if (has && state.cases.length === 1) return;
+    state.cases = has ? state.cases.filter(c => c !== d.c) : [...state.cases, d.c]; save(); restart();
+  }
+  else if (b.id === 'reset') { state.stats = {}; state.streak = 0; save(); renderStats(); }
+  else if (b.id === 'check') check();
+  else if (b.id === 'next') next();
+  else if (b.id === 'clear') { const keep = cur.q.lock ? [0] : []; cur.bank = [...cur.bank, ...cur.placed.filter(i => !keep.includes(i))]; cur.placed = keep; drawBuild(); }
+  else if (d.g != null && !cur.done) pick(+d.g, +d.o);
+  else if (d.b != null && !cur.done) { const i = +d.b; cur.bank = cur.bank.filter(x => x !== i); cur.placed.push(i); drawBuild(); }
+  else if (d.p != null && !cur.done) { const i = +d.p; if (cur.q.lock && i === 0) return; cur.placed = cur.placed.filter(x => x !== i); cur.bank.push(i); drawBuild(); }
+});
+function pick(gi, oi) {
+  cur.sel[gi] = oi;
+  document.querySelectorAll(`.opt[data-g="${gi}"]`).forEach((b, i) => b.classList.toggle('sel', i === oi));
+  check(); // only fires once every group has a selection
+}
+document.addEventListener('keydown', e => {
+  if (!cur) return;
+  if (e.key === 'Enter') { e.preventDefault(); cur.done ? next() : check(); }
+  else if (cur.q.kind === 'multi' && !cur.done && /^[1-9]$/.test(e.key)) {
+    const gi = cur.q.groups.findIndex((_, i) => cur.sel[i] == null), oi = +e.key - 1;
+    if (gi >= 0 && oi < cur.q.groups[gi].options.length) pick(gi, oi);
+  }
+});
+
+if (state.f >= FEATURES.length) state.f = 0;
+renderChrome(); next();
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
