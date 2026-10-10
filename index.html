@@ -78,7 +78,7 @@ input[type=text]:focus{outline:2px solid var(--accent);outline-offset:1px}
 .fb.ok{background:var(--okbg)} .fb.bad{background:var(--badbg)}
 .fb h3{margin:0 0 4px;font-size:16px}
 .fb.ok h3{color:var(--ok)} .fb.bad h3{color:var(--bad)}
-.fb .sol{font-size:19px;font-weight:600;margin:4px 0}
+.sol{font-size:19px;font-weight:600;margin:4px 0}
 .fb p{margin:6px 0 0;font-size:14px}
 .N{color:var(--nom)} .A{color:var(--akk)} .D{color:var(--dat)}
 .v{color:var(--verb);font-weight:700;text-decoration:underline} .inf{color:var(--inf);font-weight:700}
@@ -134,11 +134,9 @@ const PRON = [
   { n: 'Sie', a: 'Sie', d: 'Ihnen', lab: 'Sie (formal)' },
 ];
 const pronRow = p => `${cspan('N', p.n)} → ${cspan('A', p.a)} → ${cspan('D', p.d)}`;
-function genPronForms() {
-  const p = rnd(PRON);
-  return { tag: 'Personalpronomen', key: p.lab, prompt: p.lab, kind: 'inputs', solution: pronRow(p),
-    fields: [{ label: 'Akkusativ', cls: 'A', answer: p.a }, { label: 'Dativ', cls: 'D', answer: p.d }] };
-}
+const pronQ = p => ({ tag: 'Personalpronomen', key: p.lab, prompt: p.lab, kind: 'inputs', solution: pronRow(p),
+    fields: [{ label: 'Akkusativ', cls: 'A', answer: p.a }, { label: 'Dativ', cls: 'D', answer: p.d }] });
+const genPronForms = () => pronQ(rnd(PRON));
 
 // ---------- 2. Possessivartikel ----------
 const OWNERS = [['ich', 'mein'], ['du', 'dein'], ['er', 'sein'], ['sie (she)', 'ihr'], ['es', 'sein'], ['wir', 'unser'], ['ihr (you all)', 'euer'], ['sie (they)', 'ihr'], ['Sie (formal)', 'Ihr']];
@@ -457,7 +455,8 @@ const REF = {
 
 // ---------- features ----------
 const FEATURES = [
-  { id: 'pron', title: 'Personalpronomen', modes: [['Akkusativ & Dativ', genPronForms]] },
+  // deck: a round asks every item exactly once; mistakes are asked again at the end until they are right
+  { id: 'pron', title: 'Personalpronomen', modes: [['Akkusativ & Dativ', genPronForms]], deck: () => PRON.map(pronQ) },
   { id: 'poss', title: 'Possessivartikel', cases: true,
     modes: [['Sätze', genPossSentence], ['Tabelle', genPossTable], ['Endungen', genPossEnding]] },
   { id: 'prep', title: 'Präpositionen & Verben',
@@ -531,7 +530,7 @@ function renderProfile() {
   $('#profile').innerHTML = `<div class="card"><div class="tag">Profil</div>
     <h4>Fortschritt</h4><table><tr><th>Übung</th><th>Richtig</th><th>%</th></tr>${rows}</table><p>Aktuelle Serie: <b>${state.streak}</b></p>
     <h4>Einstellungen</h4><div class="row" style="margin-top:8px"><button class="btn ghost" id="mute">${state.mute ? '🔇 Ton aus' : '🔊 Ton an'}</button><button class="btn ghost" id="reset">Fortschritt zurücksetzen</button></div>
-    <h4>Tipps</h4><p>A wrong answer comes back a few questions later.</p><p>Keyboard: <kbd>Enter</kbd> checks / goes on · <kbd>1</kbd>–<kbd>5</kbd> pick an option.</p>
+    <h4>Tipps</h4><p>Personalpronomen: one round asks every pronoun once; mistakes are asked again at the end.</p><p>Other exercises: a wrong answer comes back a few questions later.</p><p>Keyboard: <kbd>Enter</kbd> checks / goes on · <kbd>1</kbd>–<kbd>5</kbd> pick an option.</p>
     <p>Colours: ${cspan('N', 'Nominativ')} · ${cspan('A', 'Akkusativ')} · ${cspan('D', 'Dativ')} · <span class="v">konjugiertes Verb</span> · <span class="inf">Infinitiv</span></p>
     <div class="row"><button class="btn" id="back">← Zurück</button></div></div>`;
 }
@@ -543,7 +542,7 @@ const gapHtml = (t, fill) => t.replace('___', fill ? `<span class="gap filled">$
 
 function showQuestion(q) {
   cur = { q, done: false, sel: [], placed: [], bank: [] };
-  let h = `<div class="tag">${q.tag}</div><div class="prompt" id="prompt">${gapHtml(q.prompt)}</div>`;
+  let h = `<div class="tag">${q.tag}${q.progress ? ' · ' + q.progress : ''}</div><div class="prompt" id="prompt">${gapHtml(q.prompt)}</div>`;
   if (q.sub) h += `<div class="sub">${q.sub}</div>`;
   if (q.kind === 'input') {
     h += `<div class="row"><input type="text" id="ans" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Antwort …"><button class="btn" id="check">Prüfen</button></div>`;
@@ -580,7 +579,10 @@ function finish(ok, solution) {
   const s = state.stats[feat().id] = state.stats[feat().id] || { c: 0, t: 0 };
   if (!q.isRetry) { s.t++; if (ok) s.c++; }
   state.streak = ok ? state.streak + 1 : 0;
-  if (!ok) state.retry.push({ q: { ...q, isRetry: true }, due: state.n + 3 });
+  if (feat().deck) {
+    if (!ok) { state.round.queue.push({ ...q, isRetry: true }); if (!q.isRetry) state.round.missed.push(q); }
+    else if (!q.isRetry) state.round.right++;
+  } else if (!ok) state.retry.push({ q: { ...q, isRetry: true }, due: state.n + 3 });
   save(); renderStats(); sfx(ok ? 'ok' : 'bad');
   $('#fb').innerHTML = `<div class="fb ${ok ? 'ok' : 'bad'}"><h3>${ok ? 'Richtig! ✓' : 'Leider falsch ✗'}</h3>` +
     (solution ? `<div class="sol">${solution}</div>` : '') + `<p>${q.explain || ''}</p>` + `</div><div class="row"><button class="btn" id="next">Weiter →</button></div>`;
@@ -622,8 +624,22 @@ function check() {
     finish(ok, sol);
   }
 }
-function next() { showQuestion(nextQuestion()); }
-function restart() { state.retry = []; state.streak = 0; renderChrome(); next(); }
+function startRound() { const d = shuffle(feat().deck()); state.round = { queue: d, total: d.length, asked: 0, right: 0, missed: [] }; }
+function next() {
+  if (!feat().deck) return showQuestion(nextQuestion());
+  if (!state.round.queue.length) { if (!(cur && cur.summary)) return showSummary(); startRound(); }
+  const r = state.round, q = r.queue.shift();
+  q.progress = q.isRetry ? `Wiederholung · noch ${r.queue.length + 1}` : `${++r.asked} / ${r.total}`;
+  showQuestion(q);
+}
+function showSummary() {
+  const r = state.round; cur = { summary: true, done: true, q: {} };
+  $('#card').innerHTML = `<div class="tag">${feat().title} · Ergebnis</div><div class="prompt">${r.right} / ${r.total} beim ersten Versuch${r.right === r.total ? ' 🎉' : ''}</div>` +
+    (r.missed.length ? `<h4>Noch üben</h4>` + r.missed.map(q => `<div class="sol">${q.solution}</div>`).join('') : '') +
+    `<div class="row"><button class="btn" id="next">Noch einmal</button></div>`;
+  $('#next').focus();
+}
+function restart() { state.retry = []; state.streak = 0; if (feat().deck) startRound(); renderChrome(); next(); }
 
 // ---------- events ----------
 document.addEventListener('click', e => {
@@ -664,7 +680,7 @@ document.addEventListener('keydown', e => {
 });
 
 if (state.f >= FEATURES.length) state.f = 0;
-renderChrome(); next();
+restart();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
