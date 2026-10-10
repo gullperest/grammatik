@@ -503,9 +503,9 @@ const FEATURES = [
 // ---------- state ----------
 const store = { get() { try { return JSON.parse(localStorage.getItem('grammatik') || '{}'); } catch { return {}; } }, set(v) { try { localStorage.setItem('grammatik', JSON.stringify(v)); } catch {} } };
 const saved = store.get();
-const state = { f: saved.f || 0, mode: saved.mode || {}, cases: saved.cases || ['N', 'A', 'D'], stats: saved.stats || {}, streak: 0, n: 0, retry: [], lastKey: '' };
+const state = { f: saved.f || 0, mode: saved.mode || {}, cases: saved.cases || ['N', 'A', 'D'], stats: saved.stats || {}, mute: !!saved.mute, streak: 0, n: 0, retry: [], lastKey: '' };
 let cur = null;
-const save = () => store.set({ f: state.f, mode: state.mode, cases: state.cases, stats: state.stats });
+const save = () => store.set({ f: state.f, mode: state.mode, cases: state.cases, stats: state.stats, mute: state.mute });
 const feat = () => FEATURES[state.f];
 const modeIdx = () => state.mode[feat().id] ?? 0; // index into modes, or 'mix'
 
@@ -525,6 +525,28 @@ function nextQuestion() {
   return q;
 }
 
+// ---------- sound (generated with Web Audio, no files) ----------
+let actx;
+function tone(freq, at, dur, type = 'sine', vol = 0.08) {
+  const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime + at;
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur);
+}
+const SOUNDS = {
+  tap() { tone(520, 0, 0.05, 'triangle', 0.06); },
+  ok() { tone(660, 0, 0.12); tone(880, 0.1, 0.2); },
+  bad() { tone(220, 0, 0.12, 'square', 0.04); tone(165, 0.11, 0.22, 'square', 0.04); },
+};
+function sfx(name) {
+  if (state.mute) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    SOUNDS[name]();
+  } catch {}
+}
+
 // ---------- rendering ----------
 function renderChrome() {
   $('#nav').innerHTML = FEATURES.map((F, i) => `<button class="${i === state.f ? 'on' : ''}" data-f="${i}"><b>${F.title}</b><span>${F.sub}</span></button>`).join('');
@@ -538,7 +560,7 @@ function renderChrome() {
 }
 function renderStats() {
   const s = state.stats[feat().id] || { c: 0, t: 0 };
-  $('#stats').innerHTML = `${s.c} / ${s.t} richtig${s.t ? ` (${Math.round(100 * s.c / s.t)}%)` : ''} · Serie ${state.streak}<br><button id="reset">reset</button>`;
+  $('#stats').innerHTML = `${s.c} / ${s.t} richtig${s.t ? ` (${Math.round(100 * s.c / s.t)}%)` : ''} · Serie ${state.streak}<br><button id="mute">${state.mute ? '🔇 sound off' : '🔊 sound on'}</button> · <button id="reset">reset</button>`;
 }
 const gapHtml = (t, fill) => t.replace('___', fill ? `<span class="gap filled">${fill}</span>` : '<span class="gap">&nbsp;</span>');
 
@@ -579,7 +601,7 @@ function finish(ok, solution) {
   if (!q.isRetry) { s.t++; if (ok) s.c++; }
   state.streak = ok ? state.streak + 1 : 0;
   if (!ok) state.retry.push({ q: { ...q, isRetry: true }, due: state.n + 3 });
-  save(); renderStats();
+  save(); renderStats(); sfx(ok ? 'ok' : 'bad');
   $('#fb').innerHTML = `<div class="fb ${ok ? 'ok' : 'bad'}"><h3>${ok ? 'Richtig! ✓' : 'Leider falsch ✗'}</h3>` +
     (solution ? `<div class="sol">${solution}</div>` : '') + `<p>${q.explain || ''}</p>` + (ok ? '' : '<p><small>This one comes back in a few questions.</small></p>') +
     `</div><div class="row"><button class="btn" id="next">Weiter →</button></div>`;
@@ -621,7 +643,9 @@ function restart() { state.retry = []; state.streak = 0; renderChrome(); next();
 // ---------- events ----------
 document.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
-  const d = b.dataset;
+  const d = b.dataset, wasDone = cur && cur.done;
+  if (b.id === 'mute') { state.mute = !state.mute; save(); renderStats(); sfx('tap'); return; }
+  if (b.disabled || (b.classList.contains('locked'))) return;
   if (d.f != null) { state.f = +d.f; save(); restart(); }
   else if (d.m != null) { state.mode[feat().id] = d.m === 'mix' ? 'mix' : +d.m; save(); restart(); }
   else if (d.c) {
@@ -636,6 +660,7 @@ document.addEventListener('click', e => {
   else if (d.g != null && !cur.done) pick(+d.g, +d.o);
   else if (d.b != null && !cur.done) { const i = +d.b; cur.bank = cur.bank.filter(x => x !== i); cur.placed.push(i); drawBuild(); }
   else if (d.p != null && !cur.done) { const i = +d.p; if (cur.q.lock && i === 0) return; cur.placed = cur.placed.filter(x => x !== i); cur.bank.push(i); drawBuild(); }
+  if (!(cur.done && !wasDone)) sfx('tap'); // the right/wrong sound already played when a click finished the question
 });
 function pick(gi, oi) {
   cur.sel[gi] = oi;
@@ -644,7 +669,7 @@ function pick(gi, oi) {
 }
 document.addEventListener('keydown', e => {
   if (!cur) return;
-  if (e.key === 'Enter') { e.preventDefault(); cur.done ? next() : check(); }
+  if (e.key === 'Enter') { e.preventDefault(); if (cur.done) { sfx('tap'); next(); } else check(); }
   else if (cur.q.kind === 'multi' && !cur.done && /^[1-9]$/.test(e.key)) {
     const gi = cur.q.groups.findIndex((_, i) => cur.sel[i] == null), oi = +e.key - 1;
     if (gi >= 0 && oi < cur.q.groups[gi].options.length) pick(gi, oi);
