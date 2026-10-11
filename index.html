@@ -62,6 +62,9 @@ nav button.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent
 .tag{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
 .prompt{font-size:24px;font-weight:600;line-height:1.35}
 .sub{color:var(--muted);margin-top:6px}
+.prompt.letter{font-size:16px;font-weight:400;line-height:1.6;white-space:pre-line;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.prompt.letter .gap{min-width:80px}
+.opts.box .opt{font-size:15px;padding:8px 12px}
 .gap{display:inline-block;min-width:64px;border-bottom:2px solid var(--muted);text-align:center;color:var(--muted)}
 .gap.filled{border-color:var(--ok);color:var(--ok)}
 .row{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;align-items:center}
@@ -98,6 +101,8 @@ summary{cursor:pointer;font-weight:600}
 table{border-collapse:collapse;width:100%;margin:12px 0;font-size:15px}
 th,td{border:1px solid var(--line);padding:6px 10px;text-align:left}
 th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.ref{overflow-x:auto}
+@media (max-width:560px){.ref th,.ref td{padding:5px 6px} .ref th{font-size:10px;letter-spacing:0}}
 .ref p{font-size:14px;margin:8px 0}
 .ref h4{margin:16px 0 4px;font-size:14px}
 .schema{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 12px;font-size:14px}
@@ -197,7 +202,7 @@ sich kümmern|um|A|to take care of|Sie kümmert sich ___ die Kinder.
 sprechen|mit|D|to talk with|Ich spreche ___ meinem Chef.
 sprechen|über|A|to talk about|Wir sprechen ___ das Problem.
 träumen|von|D|to dream of|Er träumt ___ einem Haus am Meer.
-teilnehmen|an|D|to take part in|Ich nehme ___ dem Kurs teil.
+teilnehmen|an|D|to take part in|Ich nehme ___ der Konferenz teil.
 Angst haben|vor|D|to be afraid of|Das Kind hat Angst ___ dem Hund.
 sich ärgern|über|A|to be annoyed about|Ich ärgere mich ___ den Lärm.
 bitten|um|A|to ask for (a favour)|Darf ich Sie ___ Hilfe bitten?
@@ -217,7 +222,7 @@ sich verlieben|in|A|to fall in love with|Er hat sich ___ sie verliebt.
 sich vorbereiten|auf|A|to prepare for|Sie bereitet sich ___ das Interview vor.
 anfangen|mit|D|to start with|Wir fangen ___ der Übung an.
 aufhören|mit|D|to stop (doing sth.)|Hör bitte ___ dem Lärm auf!
-abhängen|von|D|to depend on|Das hängt ___ dem Wetter ab.
+abhängen|von|D|to depend on|Das hängt ___ deiner Antwort ab.
 achten|auf|A|to pay attention to|Achte bitte ___ die Regeln!
 antworten|auf|A|to reply to (sth.)|Er antwortet nicht ___ meine E-Mail.
 sich beschweren|über|A|to complain about|Der Gast beschwert sich ___ das Essen.
@@ -237,8 +242,14 @@ gratulieren|zu|D|to congratulate on|Ich gratuliere dir ___ deinem Geburtstag.
 sich informieren|über|A|to find out about|Ich informiere mich ___ die Preise.`.split('\n').map(l => l.split('|'));
 const PREPS = ['an', 'auf', 'bei', 'für', 'in', 'mit', 'nach', 'über', 'um', 'unter', 'von', 'vor', 'zu'];
 
+// prepositions that would ALSO make a correct sentence — never offered as wrong options
+const VP_EXCL = { 'sich freuen|auf': ['über'], 'sich freuen|über': ['auf'], 'denken|an': ['über'], 'sprechen|mit': ['von', 'vor', 'zu'],
+  'träumen|von': ['in', 'unter'], 'sich bewerben|um': ['für', 'auf'], 'sich treffen|mit': ['bei', 'vor'], 'sich vorbereiten|auf': ['für'],
+  'anfangen|mit': ['nach', 'vor', 'bei'], 'erzählen|von': ['nach', 'vor'], 'helfen|bei': ['mit', 'nach', 'vor'], 'schmecken|nach': ['mit'],
+  'streiten|mit': ['vor'], 'telefonieren|mit': ['bei', 'von'], 'leiden|unter': ['an'] };
 function vpQ([verb, prep, c, en, s]) {
-  const opts = shuffle([prep, ...shuffle(PREPS.filter(p => p !== prep)).slice(0, 4)]);
+  const excl = VP_EXCL[verb + '|' + prep] || [];
+  const opts = shuffle([prep, ...shuffle(PREPS.filter(p => p !== prep && !excl.includes(p))).slice(0, 4)]);
   return { tag: 'Verb + Präposition', key: verb + prep, prompt: s, sub: `<b>${verb}</b> — ${en}`, kind: 'multi', fill: prep,
     groups: [{ label: 'Präposition', options: opts, answer: prep }, { label: 'Kasus danach', options: ['Akkusativ', 'Dativ'], answer: CASE[c] }],
     explain: `<b>${verb} ${prep}</b> + ${cspan(c, CASE[c])}` };
@@ -263,7 +274,7 @@ passieren|D|to happen to|Was ist dir passiert?
 widersprechen|D|to contradict|Er widerspricht dem Chef.
 sehen|A|to see|Ich sehe den Mann.
 brauchen|A|to need|Ich brauche einen Stift.
-kaufen|A|to buy|Sie kauft einen Mantel.
+lesen|A|to read|Ich lese einen Roman.
 besuchen|A|to visit|Wir besuchen die Oma.
 fragen|A|to ask (a person)|Ich frage den Lehrer.
 lieben|A|to love|Er liebt seinen Hund.
@@ -330,7 +341,7 @@ Ohne ___ Jacke gehe ich nicht raus.|die Jacke|die|A|ohne + Akkusativ
 Seit ___ Unfall fährt er nicht mehr Auto.|der Unfall|dem|D|seit + Dativ
 Er läuft gegen ___ Tür.|die Tür|die|A|gegen + Akkusativ
 Ich gehe in ___ Park.|der Park|den|A|in + Wohin? → Akkusativ
-Ich bin in ___ Park.|der Park|dem|D|in + Wo? → Dativ (in dem = im)
+Ich sitze unter ___ Baum.|der Baum|dem|D|unter + Wo? → Dativ
 Ich lege das Buch auf ___ Tisch.|der Tisch|den|A|auf + Wohin? (legen) → Akkusativ
 Das Buch liegt auf ___ Tisch.|der Tisch|dem|D|auf + Wo? (liegen) → Dativ
 Die Lampe hängt über ___ Sofa.|das Sofa|dem|D|über + Wo? → Dativ
@@ -338,13 +349,13 @@ Ich hänge das Bild an ___ Wand.|die Wand|die|A|an + Wohin? (hängen) → Akkusa
 Das Bild hängt an ___ Wand.|die Wand|der|D|an + Wo? → Dativ
 Die Katze sitzt unter ___ Stuhl.|der Stuhl|dem|D|unter + Wo? (sitzen) → Dativ
 Ich stelle die Flasche in ___ Kühlschrank.|der Kühlschrank|den|A|in + Wohin? (stellen) → Akkusativ
-Die Flasche steht in ___ Kühlschrank.|der Kühlschrank|dem|D|in + Wo? (stehen) → Dativ
+Die Flasche steht neben ___ Kühlschrank.|der Kühlschrank|dem|D|neben + Wo? (stehen) → Dativ
 Das Auto steht vor ___ Haus.|das Haus|dem|D|vor + Wo? → Dativ
 Ich warte auf ___ Bus.|der Bus|den|A|warten auf + Akkusativ
 Er träumt von ___ Reise.|die Reise|der|D|träumen von + Dativ
 Ich denke an ___ Urlaub.|der Urlaub|den|A|denken an + Akkusativ
 Sie interessiert sich für ___ Film.|der Film|den|A|sich interessieren für + Akkusativ
-Er nimmt an ___ Kurs teil.|der Kurs|dem|D|teilnehmen an + Dativ`.split('\n').map(l => l.split('|'));
+Er nimmt an ___ Prüfung teil.|die Prüfung|der|D|teilnehmen an + Dativ`.split('\n').map(l => l.split('|'));
 function artQ([t, noun, a, c, why]) {
   return { tag: 'Artikel einsetzen', prompt: t, sub: `(${noun})`, kind: 'input', answer: [a], show: t.startsWith('___') ? cap(a) : a,
     explain: `${why} → ${cspan(c, CASE[c])}<br>der / die / das / die → ${cspan('A', 'den / die / das / die')} → ${cspan('D', 'dem / der / dem / den')}` };
@@ -433,12 +444,985 @@ function verbPosQ(q) {
     groups: [{ options: ['Position 1', 'Position 2', 'am Ende'], answer: q[1] }], explain: q[2] };
 }
 
+// ---------- 5. Reflexivpronomen (A-Grammatik 3.2, 1.2) ----------
+const REFL = [
+  { lab: 'ich', a: 'mich', d: 'mir' }, { lab: 'du', a: 'dich', d: 'dir' }, { lab: 'er / sie / es', a: 'sich', d: 'sich' },
+  { lab: 'wir', a: 'uns', d: 'uns' }, { lab: 'ihr (you all)', a: 'euch', d: 'euch' }, { lab: 'sie (they) / Sie', a: 'sich', d: 'sich' },
+];
+const reflTabQ = p => ({ tag: 'Reflexivpronomen · Tabelle', key: p.lab, prompt: p.lab, sub: 'Reflexivpronomen in Akkusativ and Dativ?', kind: 'inputs',
+  solution: `${p.lab} → ${cspan('A', p.a)} → ${cspan('D', p.d)}`,
+  fields: [{ label: 'Akkusativ', cls: 'A', answer: p.a }, { label: 'Dativ', cls: 'D', answer: p.d }],
+  explain: 'Same as the Personalpronomen — except every 3rd person (er, sie, es, sie, Sie) becomes <b>sich</b>.' });
+// sentence | answer | case | verb (what makes the case)
+const RS = `Ich freue ___ auf das Wochenende.|mich|A|sich freuen auf
+Du musst ___ beeilen, der Zug fährt gleich!|dich|A|sich beeilen
+Er interessiert ___ für Politik.|sich|A|sich interessieren für
+Wir treffen ___ um acht vor dem Kino.|uns|A|sich treffen
+Habt ihr ___ schon für den Kurs angemeldet?|euch|A|sich anmelden
+Die Kinder streiten ___ oft.|sich|A|sich streiten
+Ich bewerbe ___ um die Stelle.|mich|A|sich bewerben um
+Erinnerst du ___ an unseren Lehrer?|dich|A|sich erinnern an
+Sie ärgert ___ über den Lärm.|sich|A|sich ärgern über
+Wir müssen ___ auf die Prüfung vorbereiten.|uns|A|sich vorbereiten auf
+Ich setze ___ ans Fenster.|mich|A|sich setzen
+Setzen Sie ___ bitte!|sich|A|sich setzen (Sie = formal)
+Ich fühle ___ heute nicht gut.|mich|A|sich fühlen
+Kannst du ___ an das Wetter gewöhnen?|dich|A|sich gewöhnen an
+Er entschuldigt ___ für den Fehler.|sich|A|sich entschuldigen für
+Zieht ___ warm an, es ist kalt!|euch|A|sich anziehen
+Ich wasche ___ jeden Morgen kalt.|mich|A|sich waschen
+Wir unterhalten ___ über den Film.|uns|A|sich unterhalten über
+Wann hast du ___ in sie verliebt?|dich|A|sich verlieben in
+Ich kümmere ___ um meine Oma.|mich|A|sich kümmern um
+Ich wasche ___ die Hände.|mir|D|sich (D) die Hände (A) waschen
+Putzt du ___ die Zähne?|dir|D|sich (D) die Zähne (A) putzen
+Er kauft ___ ein neues Handy.|sich|D|sich (D) etwas (A) kaufen
+Wir wünschen ___ ein Haus mit Garten.|uns|D|sich (D) etwas (A) wünschen
+Ich sehe ___ morgen den Film an.|mir|D|sich (D) etwas (A) ansehen
+Kannst du ___ das vorstellen?|dir|D|sich (D) etwas (A) vorstellen
+Ich muss ___ die Telefonnummer merken.|mir|D|sich (D) etwas (A) merken
+Habt ihr ___ die Wohnung schon angesehen?|euch|D|sich (D) etwas (A) ansehen
+Ich kann ___ kein neues Auto leisten.|mir|D|sich (D) etwas (A) leisten
+Sie kämmt ___ die Haare.|sich|D|sich (D) die Haare (A) kämmen
+Ich ziehe ___ eine Jacke an.|mir|D|sich (D) etwas (A) anziehen
+Wir machen ___ Sorgen um dich.|uns|D|sich (D) Sorgen (A) machen
+Ich bestelle ___ eine Pizza.|mir|D|sich (D) etwas (A) bestellen
+Nimm ___ ein Stück Kuchen!|dir|D|sich (D) etwas (A) nehmen
+Er hat ___ das Bein gebrochen.|sich|D|sich (D) das Bein (A) brechen
+Wünsch ___ etwas zum Geburtstag!|dir|D|sich (D) etwas (A) wünschen`.split('\n').map(l => l.split('|'));
+const RS_WHY = {
+  A: `No other object in the sentence → reflexive pronoun in the ${cspan('A', 'Akkusativ')}.`,
+  D: `There is already an Akkusativ object → the reflexive pronoun moves to the ${cspan('D', 'Dativ')}. Only <b>mir / dir</b> look different.`,
+};
+function reflQ([t, a, c, verb]) {
+  return { tag: 'Reflexivpronomen · Satz', key: t, prompt: t, sub: 'Which reflexive pronoun?', kind: 'input', answer: [a], show: a,
+    explain: `<b>${verb}</b><br>${RS_WHY[c]}` };
+}
+
+// ---------- 6. Artikel: der / ein / kein (A-Grammatik 2.3, 2.4) ----------
+const AF = {
+  der: { N: { m: 'der', f: 'die', n: 'das', p: 'die' }, A: { m: 'den', f: 'die', n: 'das', p: 'die' }, D: { m: 'dem', f: 'der', n: 'dem', p: 'den' } },
+  ein: { N: { m: 'ein', f: 'eine', n: 'ein' }, A: { m: 'einen', f: 'eine', n: 'ein' }, D: { m: 'einem', f: 'einer', n: 'einem' } },
+  kein: { N: { m: 'kein', f: 'keine', n: 'kein', p: 'keine' }, A: { m: 'keinen', f: 'keine', n: 'kein', p: 'keine' }, D: { m: 'keinem', f: 'keiner', n: 'keinem', p: 'keinen' } },
+};
+const AF_NOUN = { m: 'Mann', f: 'Frau', n: 'Kind', p: 'Kinder' };
+const afRow = (c, g) => ['der', 'ein', 'kein'].map(t => AF[t][c][g] || '–').join(' · ');
+const afCombos = t => CASES3.flatMap(c => G4.filter(g => AF[t][c][g]).map(g => [t, c, g]));
+function afTabQ([t, c, g]) {
+  const a = AF[t][c][g];
+  return { tag: 'Artikel · Tabelle', prompt: `<b>${t}</b> · ${cspan(c, CASE[c])} · ${GENDER[g]}`, sub: `(${ART[g]} ${AF_NOUN[g]})`, kind: 'input', answer: [a], show: a,
+    explain: `${cspan(c, CASE[c])} ${GENDER[g]}: der · ein · kein → <b>${afRow(c, g)}</b>` +
+      (t === 'ein' ? '' : t === 'kein' ? '<br>kein = k + ein, and in the plural it ends like die → keine / keinen.' : '') };
+}
+// sentence | article type | noun | gender | answer | case | why
+const EIN_S = `Ich habe ___ Bruder.|ein|der Bruder|m|einen|A|haben + Akkusativ
+Wir haben ___ Auto.|kein|das Auto|n|kein|A|haben + Akkusativ
+Er wohnt bei ___ Freund.|ein|der Freund|m|einem|D|bei + Dativ
+Das ist ___ Problem.|kein|das Problem|n|kein|N|Das ist … → Nominativ
+Sie hat heute ___ Zeit.|kein|die Zeit|f|keine|A|haben + Akkusativ
+Ich schreibe ___ Freundin eine E-Mail.|ein|die Freundin|f|einer|D|schreiben: wem? → Dativ
+Ich brauche ___ Stift.|ein|der Stift|m|einen|A|brauchen + Akkusativ
+Er arbeitet bei ___ Bank.|ein|die Bank|f|einer|D|bei + Dativ
+Wir suchen ___ Wohnung.|ein|die Wohnung|f|eine|A|suchen + Akkusativ
+Ich habe ___ Hunger.|kein|der Hunger|m|keinen|A|haben + Akkusativ
+Das Kind spielt mit ___ Ball.|ein|der Ball|m|einem|D|mit + Dativ
+Ich habe ___ Geschwister.|kein|die Geschwister|p|keine|A|haben + Akkusativ
+Sie wohnt in ___ Dorf.|ein|das Dorf|n|einem|D|in + Wo? → Dativ
+Ich kenne hier ___ Arzt.|kein|der Arzt|m|keinen|A|kennen + Akkusativ
+Das ist ___ Geschenk für dich.|ein|das Geschenk|n|ein|N|Das ist … → Nominativ
+Ich habe mit ___ Kollegen darüber gesprochen.|kein|die Kollegen|p|keinen|D|mit + Dativ (Plural)
+___ Kollege hat mir geholfen.|ein|der Kollege|m|ein|N|Subjekt → Nominativ
+Ich gebe ___ Kind einen Apfel.|ein|das Kind|n|einem|D|geben: wem? → Dativ`.split('\n').map(l => l.split('|'));
+function einQ([t, type, noun, g, a, c, why]) {
+  return { tag: 'ein / kein · Satz', prompt: t, sub: `(${type} · ${noun})`, kind: 'input', answer: [a], show: t.startsWith('___') ? cap(a) : a,
+    explain: `${why} → ${cspan(c, CASE[c])} · ${GENDER[g]} → <b>${type === 'ein' ? 'ein' : 'kein'}-${(AF[type][c][g] || '').replace(/^k?ein/, '') || '∅'}</b>` };
+}
+
+// ---------- 7. Adjektivdeklination (A-Grammatik 4.1) ----------
+const EN4 = { m: 'en', f: 'en', n: 'en', p: 'en' };
+const AE = {
+  w: { N: { m: 'e', f: 'e', n: 'e', p: 'en' }, A: { m: 'en', f: 'e', n: 'e', p: 'en' }, D: EN4 },
+  g: { N: { m: 'er', f: 'e', n: 'es', p: 'en' }, A: { m: 'en', f: 'e', n: 'es', p: 'en' }, D: EN4 },
+  s: { N: { m: 'er', f: 'e', n: 'es', p: 'e' }, A: { m: 'en', f: 'e', n: 'es', p: 'e' }, D: { m: 'em', f: 'er', n: 'em', p: 'en' } },
+};
+const AT_LAB = { w: 'nach der / die / das', g: 'nach ein / kein / mein', s: 'ohne Artikel' };
+const AT_SHORT = { w: 'Schwach', g: 'Gemischt', s: 'Stark' };
+const AT_RULE = {
+  w: 'The article already shows case and gender → the adjective only needs <b>-e</b> (Nominativ singular, Akkusativ f / n) or <b>-en</b> (everything else).',
+  g: 'ein / kein / mein have no ending in Nominativ m and Nominativ / Akkusativ n → the adjective has to show it: <b>-er</b> (m), <b>-es</b> (n). Everything else works like weak.',
+  s: 'No article → the adjective takes the article’s ending: de<b>r</b> → -<b>er</b>, da<b>s</b> → -<b>es</b>, de<b>m</b> → -<b>em</b>, de<b>n</b> → -<b>en</b>, di<b>e</b> → -<b>e</b>.',
+};
+// the article in front of the adjective; mixed plural uses mein (ein has no plural)
+const MEIN_PL = { N: 'meine', A: 'meine', D: 'meinen' };
+const adjArt = (t, c, g) => t === 'w' ? AF.der[c][g] : t === 's' ? '' : g === 'p' ? MEIN_PL[c] : AF.ein[c][g];
+const adjCombos = t => CASES3.flatMap(c => G4.map(g => [t, c, g]));
+function adjEndQ([t, c, g]) {
+  const e = AE[t][c][g], art = adjArt(t, c, g);
+  return { tag: `Adjektivendung · ${AT_SHORT[t]}`, prompt: `${AT_LAB[t]} · ${cspan(c, CASE[c])} · ${GENDER[g]}`, sub: `Which ending? → ${art ? art + ' ' : ''}neu___ …`, kind: 'multi',
+    groups: [{ options: ['e', 'en', 'er', 'es', 'em'], answer: e }], explain: `${art ? art + ' ' : ''}neu<b>${e}</b><br>${AT_RULE[t]}` };
+}
+const ADJ_NOUNS = [
+  ['m', 'Tisch'], ['m', 'Mantel'], ['m', 'Computer'], ['m', 'Schrank'],
+  ['f', 'Tasche'], ['f', 'Jacke'], ['f', 'Lampe'], ['f', 'Uhr'],
+  ['n', 'Auto'], ['n', 'Fahrrad'], ['n', 'Buch'], ['n', 'Handy'],
+  ['p', 'Schuhe', 'Schuhen'], ['p', 'Bücher', 'Büchern'], ['p', 'Stühle', 'Stühlen'], ['p', 'Taschen', 'Taschen'],
+];
+// food that fits every adjective in ADJS_FOOD (frisch, gut, lecker, regional)
+const ADJ_FOOD = [
+  ['m', 'Honig'], ['m', 'Salat'], ['m', 'Käse'], ['m', 'Saft'],
+  ['f', 'Milch'], ['f', 'Butter'], ['f', 'Sahne'], ['f', 'Wurst'],
+  ['n', 'Fleisch'], ['n', 'Brot'], ['n', 'Obst'], ['n', 'Gemüse'],
+  ['p', 'Äpfel', 'Äpfeln'], ['p', 'Tomaten', 'Tomaten'], ['p', 'Eier', 'Eiern'], ['p', 'Kartoffeln', 'Kartoffeln'],
+];
+const ADJS = ['neu', 'alt', 'schön', 'groß', 'klein', 'rot', 'billig', 'modern'];
+const ADJS_FOOD = ['frisch', 'gut', 'lecker', 'regional'];
+// [singular frame, plural frame, why]
+const ADJ_FR = {
+  N: [['Das ist {X}.', 'Das sind {X}.', 'Das ist / sind … → Nominativ'], ['Hier ist {X}.', 'Hier sind {X}.', 'Subjekt → Nominativ']],
+  A: [['Ich kaufe {X}.', 0, 'kaufen + Akkusativ'], ['Ich suche {X}.', 0, 'suchen + Akkusativ'], ['Hast du {X}?', 0, 'haben + Akkusativ']],
+  D: [['Ich spreche von {X}.', 0, 'von + Dativ'], ['Was machst du mit {X}?', 0, 'mit + Dativ']],
+};
+const ADJ_FR_FOOD = {
+  N: ADJ_FR.N,
+  A: [['Ich kaufe {X}.', 0, 'kaufen + Akkusativ'], ['Wir brauchen {X}.', 0, 'brauchen + Akkusativ']],
+  D: [['Ich koche mit {X}.', 0, 'mit + Dativ'], ['Ich esse das gern mit {X}.', 0, 'mit + Dativ']],
+};
+function genAdjSentence(types) {
+  const t = rnd(types), c = rnd(CASES3), food = t === 's';
+  const [g, noun, datPl] = rnd(food ? ADJ_FOOD : ADJ_NOUNS), adj = rnd(food ? ADJS_FOOD : ADJS);
+  const frames = (food ? ADJ_FR_FOOD : ADJ_FR)[c].filter(f => !(t === 'g' && g === 'p' && f[0].startsWith('Ich kaufe')));
+  const [sg, pl, why] = rnd(frames);
+  const word = c === 'D' && g === 'p' ? datPl : noun, art = adjArt(t, c, g), e = AE[t][c][g];
+  const prompt = (g === 'p' && pl ? pl : sg).replace('{X}', `${art ? art + ' ' : ''}___ ${word}`);
+  return { tag: `Adjektivendung · ${AT_SHORT[t]} · Satz`, prompt, sub: `Adjektiv: <b>${adj}</b> · ${ART[g]} ${noun} (${GENDER[g]})`, kind: 'input', answer: [adj + e], show: adj + e,
+    explain: `${why} → ${cspan(c, CASE[c])} · ${GENDER[g]} · ${AT_SHORT[t]} (${AT_LAB[t]}) → <b>${adj}-${e}</b><br>${AT_RULE[t]}` +
+      (c === 'D' && g === 'p' ? '<br>Dativ Plural: the noun also gets <b>-n</b>.' : '') };
+}
+
+// ================= B1 additions =================
+// helpers: lines "a|b|c" → arrays · "x/y" = accepted alternatives · "x;y" = one answer per gap
+const rows = s => s.trim().split('\n').map(l => l.split('|'));
+const alts = a => a.split('/').map(x => x.trim());
+const startsGap = t => t.startsWith('___');
+// one gap, typed answer
+const typeQ = (tag, t, a, hint, explain) => ({ tag, prompt: t, sub: hint ? `(${hint})` : '', kind: 'input', answer: alts(a),
+  show: startsGap(t) ? cap(alts(a)[0]) : alts(a)[0], explain });
+// several gaps, one field per gap
+const gapsQ = (tag, t, answers, labels, hint, explain) => {
+  const parts = answers.split(';');
+  return { tag, prompt: t, sub: hint ? `(${hint})` : '', kind: 'inputs', explain,
+    solution: parts.reduce((s, p, i) => s.replace('___', `<b>${i === 0 && startsGap(t) ? cap(alts(p)[0]) : alts(p)[0]}</b>`), t),
+    fields: parts.map((p, i) => ({ label: labels[i] || `Lücke ${i + 1}`, cls: '', answer: alts(p)[0], alts: alts(p) })) };
+};
+// choose one option
+const pickQ = (tag, t, answer, options, explain, fill = answer) => ({ tag, prompt: t, sub: '', kind: 'multi', fill: (t.match(/___/g) || []).length === 1 ? fill : undefined,
+  groups: [{ options, answer }], explain });
+
+// ---------- Personalpronomen: Sätze, Wortstellung, Indefinitpronomen ----------
+const PRON_S = rows(`
+Kannst du ___ bitte helfen?|mir|ich|D|helfen + Dativ
+Ich rufe ___ morgen an.|dich|du|A|anrufen + Akkusativ
+Das Kleid gefällt ___ sehr.|ihr|sie, she|D|gefallen + Dativ
+Wir besuchen ___ am Wochenende.|sie|sie, they|A|besuchen + Akkusativ
+Gehört das Auto ___?|ihm|er|D|gehören + Dativ
+Ich verstehe ___ leider nicht.|Sie|Sie|A|verstehen + Akkusativ
+Der Lehrer erklärt ___ die Grammatik.|uns|wir|D|erklären: wem? → Dativ (the thing explained is Akkusativ)
+Ich warte schon seit einer Stunde auf ___.|euch|ihr|A|warten auf + Akkusativ
+Wie geht es ___?|dir|du|D|Wie geht es …? + Dativ
+Ich danke ___ für die Einladung.|Ihnen|Sie|D|danken + Dativ
+Hast du ___ schon zum Geburtstag gratuliert?|ihr|sie, she|D|gratulieren + Dativ
+Ich kenne ___ schon seit der Schule.|ihn|er|A|kennen + Akkusativ
+Kannst du ___ das Foto zeigen?|mir|ich|D|zeigen: wem? → Dativ
+Ich gehe heute mit ___ ins Kino.|ihnen|sie, they|D|mit + Dativ
+Das Geschenk ist für ___.|dich|du|A|für + Akkusativ
+Wir haben ___ lange nicht gesehen.|euch|ihr|A|sehen + Akkusativ
+Die Suppe schmeckt ___ nicht.|ihm|er|D|schmecken + Dativ
+Ohne ___ fahre ich nicht in den Urlaub!|dich|du|A|ohne + Akkusativ
+Kannst du ___ morgen vom Bahnhof abholen?|uns|wir|A|abholen + Akkusativ
+Ich schicke ___ die Unterlagen per E-Mail.|Ihnen|Sie|D|schicken: wem? → Dativ`);
+const pronSQ = ([t, a, who, c, why]) => typeQ('Personalpronomen · Satz', t, a, who, `${why} → ${cspan(c, CASE[c])}`);
+
+RULES.obj2p = 'Two pronouns: <b>Akkusativ before Dativ</b> → Ich gebe <b>es ihm</b>.';
+RULES.objnp = 'Pronoun + noun: <b>the pronoun comes first</b>, whatever its case → Ich gebe <b>es</b> meiner Schwester / Ich gebe <b>ihr</b> das Buch.';
+RULES.obj2n = 'Two nouns: <b>Dativ before Akkusativ</b> → Ich gebe <b>meiner Schwester das Buch</b>.';
+const OBJ_S = [
+  S('obj', 'obj2p', "I'm giving it to him.", 'Ich|*gebe|es|ihm', '', '.', true),
+  S('obj', 'obj2p', 'Can you show it to me?', '*Kannst|du|es|mir|+zeigen', '', '?'),
+  S('obj', 'obj2n', "I'm giving my sister the book.", 'Ich|*gebe|meiner Schwester|das Buch', '', '.', true),
+  S('obj', 'objnp', "I'm giving it to my sister.", 'Ich|*gebe|es|meiner Schwester', '', '.', true),
+  S('obj', 'objnp', "I'm giving her the book.", 'Ich|*gebe|ihr|das Buch', '', '.', true),
+  S('obj', 'obj2p', 'He explains it to us.', 'Er|*erklärt|es|uns', '', '.', true),
+  S('obj', 'objnp', 'She is sending them the letter.', 'Sie|*schickt|ihnen|den Brief', '', '.', true),
+  S('obj', 'obj2p', "We'll bring it to you tomorrow.", 'Wir|*bringen|es|Ihnen|morgen', '', '.', true),
+  S('obj', 'objnp', 'Have you told him the news?', '*Hast|du|ihm|die Neuigkeit|+erzählt', '', '?'),
+  S('obj', 'obj2n', 'The waiter brings the guests the menu.', 'Der Kellner|*bringt|den Gästen|die Speisekarte', '', '.', true),
+];
+const INDEF = rows(`
+Ist ___ zu Hause? Ich habe zweimal geklingelt.|jemand|jemand = somebody
+Ich habe angerufen, aber ___ war da.|niemand/keiner|niemand = nobody
+Möchtest du noch ___ trinken?|etwas|etwas = something
+Ich habe heute noch ___ gegessen und habe großen Hunger.|nichts|nichts = nothing
+Hast du ___ verstanden? – Ja, jedes Wort.|alles|alles = everything
+___ sind schon da – wir können anfangen.|alle|alle = everybody (plural verb: sind)
+Ich brauche einen Kugelschreiber. Hast du ___?|einen|ein Kugelschreiber (m) → Akkusativ: einen
+Ich suche eine Tasse. – Im Schrank steht noch ___.|eine|eine Tasse (f) → Nominativ: eine
+Brauchst du ein Handtuch? – Nein danke, ich habe schon ___.|eins/eines|ein Handtuch (n) → eins (eines)
+Hast du einen Regenschirm? – Nein, ich habe leider ___.|keinen|ein Regenschirm (m) → Akkusativ: keinen
+Gibt es hier in der Nähe ein Café? – Nein, hier gibt es ___.|keins/keines|ein Café (n) → keins (keines)
+Hat ___ meine Brille gesehen?|jemand|jemand = somebody (Nominativ)
+Ich bin neu in der Stadt und kenne hier noch ___.|niemanden/niemand/keinen|kennen + Akkusativ → niemanden (spoken also: niemand, keinen)
+Kann mir bitte ___ helfen?|jemand|jemand = somebody`);
+const indefQ = ([t, a, why]) => typeQ('Indefinitpronomen', t, a, '', why);
+
+// ---------- Artikel: n-Deklination ----------
+const NDEKL = rows(`
+Ich frage meinen ___.|Kollegen|der Kollege|A
+Unser ___ hilft uns oft im Garten.|Nachbar|der Nachbar|N
+Hast du schon mit dem ___ gesprochen?|Kunden|der Kunde|D
+Ich kenne den ___ nicht.|Jungen|der Junge|A
+Er ist ein sehr netter ___.|Mensch|der Mensch|N
+Wir helfen dem neuen ___.|Studenten|der Student|D
+Ich schreibe ___ Müller eine E-Mail.|Herrn|der Herr|D
+Der Polizist zeigt dem ___ den Weg.|Touristen|der Tourist|D
+Die Ärztin untersucht den ___.|Patienten|der Patient|A
+Hast du den neuen ___ schon kennengelernt?|Kollegen|der Kollege|A
+Der ___ möchte die Rechnung bezahlen.|Kunde|der Kunde|N
+Wir haben einen ___ nach dem Weg gefragt.|Polizisten|der Polizist|A
+Sie spricht gerade mit ihrem ___.|Nachbarn|der Nachbar|D
+Auf der Straße habe ich keinen ___ gesehen.|Menschen|der Mensch|A
+Die Firma sucht einen ___ für drei Monate.|Praktikanten|der Praktikant|A
+Ich gebe dem ___ einen Apfel.|Jungen|der Junge|D`);
+const ndeklQ = ([t, a, noun, c]) => typeQ('n-Deklination', t, a, noun,
+  `${cspan(c, CASE[c])} → <b>${a}</b><br>n-Deklination: some masculine nouns (people and animals, often ending in -e, -ent, -ant, -ist, plus Herr, Mensch, Nachbar) add <b>-(e)n</b> in every case except Nominativ singular.`);
+
+// ---------- Präpositionen: da(r)/wo(r) + Präposition, Zeit ----------
+const DAWO = rows(`
+Ich freue mich auf das Wochenende. Freust du dich auch ___?|darauf|sich freuen auf + thing → darauf
+___ denkst du gerade? – An meinen Urlaub.|woran|denken an + thing → woran
+___ wartest du? – Auf meine Schwester.|auf wen|person → Präposition + wen / wem (not wo-)
+___ interessierst du dich? – Für Fußball.|wofür|sich interessieren für + thing → wofür
+Er hat über das Problem gesprochen, aber ich habe noch nicht ___ nachgedacht.|darüber|nachdenken über + thing → darüber
+___ hast du gesprochen? – Mit dem Chef.|mit wem|person → mit wem
+Hast du an den Termin gedacht? – Ja, ich habe ___ gedacht.|daran|denken an + thing → daran
+___ ärgerst du dich? – Über den Lärm.|worüber|sich ärgern über + thing → worüber
+Er hat mir sehr geholfen. Ich bin ihm wirklich dankbar ___.|dafür|dankbar sein für + thing → dafür
+___ träumst du? – Von einer Reise nach Japan.|wovon|träumen von + thing → wovon
+Wir haben gestern über Anna gesprochen. – Was habt ihr über ___ gesagt?|sie|person → Präposition + Pronomen (über sie, not darüber)
+___ hast du Angst? – Vor dem Gewitter.|wovor|Angst haben vor + thing → wovor
+Ich warte schon lange ___, dass er endlich anruft.|darauf|warten auf + dass-Satz → darauf
+Bist du mit dem Ergebnis zufrieden? – Ja, ich bin sehr zufrieden ___.|damit|zufrieden sein mit + thing → damit
+___ erinnerst du dich am liebsten? – An unseren ersten Urlaub.|woran|sich erinnern an + thing → woran
+Kümmerst du dich um das Essen? – Ja, ich kümmere mich ___.|darum|sich kümmern um + thing → darum`);
+const dawoQ = ([t, a, why]) => typeQ('da(r)- / wo(r)- + Präposition', t, a, '',
+  `${why}<br>Thing → <b>da-</b> / <b>wo-</b> + preposition (an <b>r</b> before a vowel: da<b>r</b>auf, wo<b>r</b>an). Person → preposition + pronoun / wen / wem.`);
+const TEMP = rows(`
+Ich habe ___ Dienstag einen Termin beim Arzt.|am|am + day of the week
+Ich habe ___ Mai Geburtstag.|im|im + month
+Der Film fängt ___ 20 Uhr an.|um|um + clock time
+Ich wohne ___ drei Jahren in Berlin.|seit|seit + Dativ: started in the past, still true now
+Ich war ___ zwei Wochen beim Arzt.|vor|vor + Dativ = ago
+___ Wochenende fahren wir an die Ostsee.|am|am Wochenende
+___ Sommer ist es hier oft sehr heiß.|im|im + season
+Das Geschäft ist von 9 ___ 18 Uhr geöffnet.|bis|von … bis
+Ich bin ___ einer Stunde zurück.|in|in + Dativ = in (future time)
+___ dem Essen bin ich immer sehr satt.|nach|nach + Dativ = after
+Bitte bezahlen Sie die Rechnung spätestens ___ Freitag.|bis|bis = deadline (by)
+Der neue Fahrplan gilt ___ nächstem Montag.|ab|ab = from … on (start in the future)
+___ Abend sehe ich oft fern.|am|am Morgen / Mittag / Abend (but: in der Nacht)
+Ich kann ___ der Nacht schlecht schlafen.|in|in der Nacht
+Das ist ___ 15. März passiert.|am|am + date
+Mein Vater ist ___ Jahr 1965 geboren.|im|im Jahr … (or the year alone: 1965)
+Ich habe ___ halb neun einen Termin beim Zahnarzt.|um|um + clock time
+Wir haben uns ___ Weihnachten nicht mehr gesehen.|seit|seit + point in the past`);
+const tempQ = ([t, a, why]) => typeQ('Präposition · Zeit', t, a, '', why);
+
+// ---------- Satzbau: Konnektoren, Konjunktionen wählen, zweiteilige Konnektoren, Nebensätze B1 ----------
+RULES.wfrage = 'Indirect question: W-word first (wo, wann, warum …), the <span class="v">conjugated verb</span> at the very end.';
+RULES.kadv = '<b>deshalb, darum, trotzdem, dann, sonst, außerdem</b> take position 1 → the <span class="v">verb</span> comes right after them, then the subject.';
+const KADV_S = [
+  S('kadv', 'kadv', "It's raining, so I'm taking the bus.", 'deshalb|*nehme|ich|den Bus', 'Es regnet,', '.', true),
+  S('kadv', 'kadv', "I'm tired. Nevertheless I'm going to the gym today.", 'Trotzdem|*gehe|ich|heute|ins Fitnessstudio', 'Ich bin müde.', '.', true),
+  S('kadv', 'kadv', 'First I go shopping, then I cook dinner.', 'dann|*koche|ich|das Abendessen', 'Zuerst gehe ich einkaufen,', '.', true),
+  S('kadv', 'kadv', "Hurry up, otherwise we'll miss the train.", 'sonst|*verpassen|wir|den Zug', 'Beeil dich,', '!', true),
+  S('kadv', 'kadv', 'The flat is bright. It also has a balcony.', 'Außerdem|*hat|sie|einen Balkon', 'Die Wohnung ist hell.', '.', true),
+  S('kadv', 'kadv', "I've got a headache, so I'm staying at home today.", 'deshalb|*bleibe|ich|heute|zu Hause', 'Ich habe Kopfschmerzen,', '.', true),
+  S('kadv', 'kadv', 'The weather was bad. We still went to the sea.', 'Trotzdem|*sind|wir|ans Meer|+gefahren', 'Das Wetter war schlecht.', '.', true),
+  S('kadv', 'kadv', 'He studied a lot, so he passed the exam.', 'deshalb|*hat|er|die Prüfung|+bestanden', 'Er hat viel gelernt,', '.', true),
+  S('kadv', 'kadv', "I had no time, that's why I couldn't come.", 'darum|*konnte|ich|nicht|+kommen', 'Ich hatte keine Zeit,', '.', true),
+  S('kadv', 'kadv', "Put a jacket on, otherwise you'll catch a cold.", 'sonst|*erkältest|du|dich', 'Zieh eine Jacke an,', '!', true),
+];
+const KONJ_PICK = rows(`
+Ich bleibe heute zu Hause, ___ ich krank bin.|weil|weil,denn,deshalb,obwohl|verb at the end → subordinate clause · reason → weil
+Ich bleibe heute zu Hause, ___ ich bin krank.|denn|weil,denn,deshalb,obwohl|normal word order (verb in position 2) · reason → denn
+Ich bin krank, ___ bleibe ich heute zu Hause.|deshalb|weil,denn,deshalb,obwohl|verb right after the gap → word in position 1 · consequence → deshalb
+Ich gehe spazieren, ___ es heute stark regnet.|obwohl|weil,denn,obwohl,trotzdem|verb at the end · contrast → obwohl
+Es regnet, ___ gehe ich spazieren.|trotzdem|weil,denn,obwohl,trotzdem|verb right after the gap · contrast → trotzdem
+Ich weiß nicht, ___ er heute kommt.|ob|dass,ob,wenn,weil|hidden yes/no question → ob
+Ich glaube, ___ er heute kommt.|dass|dass,ob,wenn,weil|statement after glauben → dass
+___ ich Zeit habe, rufe ich dich an.|Wenn|Wenn,Als,Wann,Ob|condition (if) → wenn
+___ ich ein Kind war, wohnten wir in Hamburg.|Als|Wenn,Als,Wann,Ob|one time or one period in the past → als
+Weißt du, ___ der Zug ankommt? – Um 15 Uhr.|wann|wenn,als,wann,ob|question word „when?“ → wann
+Jedes Mal, ___ ich ihn besuche, kocht er für mich.|wenn|wenn,als,wann,ob|repeated (every time) → wenn
+Ich lerne jeden Tag, ___ ich die Prüfung bestehe.|damit|damit,dass,weil,obwohl|purpose (so that) → damit
+Wir warten hier, ___ der Regen aufhört.|bis|bis,seit,während,nachdem|until → bis
+___ ich in Berlin wohne, fahre ich nur noch Fahrrad.|Seit|Bis,Seit,Während,Nachdem|since (and still true) → seit
+___ ich gegessen hatte, ging ich spazieren.|Nachdem|Bevor,Nachdem,Während,Bis|first action finished (Plusquamperfekt) → nachdem
+___ ich koche, höre ich nebenbei Musik.|Während|Bevor,Nachdem,Während,Bis|at the same time → während
+Ich möchte ein Auto kaufen, ___ ich habe nicht genug Geld.|aber|aber,obwohl,trotzdem,deshalb|normal word order · contrast → aber
+Das ist nicht mein Auto, ___ das Auto von meinem Bruder.|sondern|aber,sondern,oder,denn|after a negation, correcting it → sondern
+Ruf mich bitte an, ___ du angekommen bist.|sobald|sobald,obwohl,ob,als|as soon as → sobald
+___ ich ins Bett gehe, putze ich mir die Zähne.|Bevor|Bevor,Nachdem,Seit,Bis|before → bevor`);
+const konjPickQ = ([t, a, opts, why]) => pickQ('Konnektoren · Welches Wort passt?', t, a, opts.split(','), why);
+const ZWEI_OPTS = ['entweder … oder', 'weder … noch', 'sowohl … als auch', 'nicht nur … sondern auch'];
+const ZWEI = rows(`
+Wir fahren ___ mit dem Zug ___ mit dem Auto – wir müssen uns entscheiden.|entweder … oder|one of two options
+Ich habe ___ Zeit ___ Geld. Ich kann leider nicht mitkommen.|weder … noch|neither … nor (both are negative)
+Er spricht ___ Englisch ___ Spanisch – beide Sprachen sehr gut.|sowohl … als auch|both … and
+Die Wohnung ist ___ groß, ___ sehr günstig.|nicht nur … sondern auch|not only … but also
+Mein Bruder isst ___ Fleisch ___ Fisch. Er ist Vegetarier.|weder … noch|neither … nor
+Im Kurs üben wir ___ Grammatik ___ Wortschatz.|sowohl … als auch|both … and
+Sie ist ___ Ärztin, ___ eine bekannte Autorin.|nicht nur … sondern auch|not only … but also
+Am Samstag gehe ich ___ ins Kino ___ ins Theater – das weiß ich noch nicht.|entweder … oder|one of two options
+Das Hotel war ___ sauber ___ freundlich. Wir kommen nie wieder!|weder … noch|neither … nor
+Diese Stelle bietet ___ ein gutes Gehalt, ___ flexible Arbeitszeiten.|nicht nur … sondern auch|not only … but also`);
+// 'sowohl … als auch' and 'nicht nur … sondern auch' can mean the same — never offer the other one as a wrong option
+const zweiQ = ([t, a, why]) => pickQ('Zweiteilige Konnektoren', t, a, ZWEI_OPTS.filter(o => !(a.startsWith('sowohl') && o.startsWith('nicht nur')) && !(a.startsWith('nicht nur') && o.startsWith('sowohl'))),
+  `${t.replace('___', '<b>' + a.split(' … ')[0] + '</b>').replace('___', '<b>' + a.split(' … ')[1] + '</b>')}<br>${why}`);
+const NEBEN2_S = [
+  S('neben2', 'perf', "I'm going for a walk after I've eaten.", 'nachdem|ich|+gegessen|*habe', 'Ich gehe spazieren,'),
+  S('neben2', 'sep', 'We are waiting until the rain stops.', 'bis|der Regen|*aufhört', 'Wir warten,'),
+  S('neben2', 'neben', 'I listen to music while I cook.', 'während|ich|*koche', 'Ich höre Musik,'),
+  S('neben2', 'neben', "I've been riding my bike since I've lived in Berlin.", 'seit|ich|in Berlin|*wohne', 'Ich fahre Fahrrad,'),
+  S('neben2', 'neben', 'I speak slowly so that you understand me.', 'damit|du|mich|*verstehst', 'Ich spreche langsam,'),
+  S('neben2', 'neben', 'He called when I was in the shower.', 'als|ich|unter der Dusche|*war', 'Er hat angerufen,'),
+  S('neben2', 'wfrage', 'Can you tell me where the station is?', 'wo|der Bahnhof|*ist', 'Können Sie mir sagen,', '?'),
+  S('neben2', 'perf', "I don't know why he came so late.", 'warum|er|so spät|+gekommen|*ist', 'Ich weiß nicht,'),
+  S('neben2', 'neben', "Call me as soon as you're home.", 'sobald|du|zu Hause|*bist', 'Ruf mich an,', '!'),
+  S('neben2', 'nmodal', 'She asks whether we want to come along tomorrow.', 'ob|wir|morgen|+mitkommen|*wollen', 'Sie fragt,'),
+  S('neben2', 'first', 'When I was young, I lived in Hamburg.', '*wohnte|ich|in Hamburg', 'Als ich jung war,'),
+  S('neben2', 'first', 'After he had eaten, he went to bed.', '*ging|er|ins Bett', 'Nachdem er gegessen hatte,'),
+  S('neben2', 'neben', "It's important that you practise regularly.", 'dass|man|regelmäßig|*übt', 'Es ist wichtig,'),
+  S('neben2', 'perf', "I'm glad that you came.", 'dass|du|+gekommen|*bist', 'Ich freue mich,'),
+];
+
+// ---------- 8. Zeiten (A-Grammatik 1.1.3, 1.1.4) ----------
+const PERF_HS = rows(`
+gehen|sein|to go
+fahren|sein|to go (by vehicle)
+kommen|sein|to come
+fliegen|sein|to fly
+laufen|sein|to run / walk
+aufstehen|sein|to get up
+einschlafen|sein|to fall asleep
+ankommen|sein|to arrive
+umziehen|sein|to move (house)
+bleiben|sein|to stay
+sein|sein|to be
+werden|sein|to become
+passieren|sein|to happen
+sterben|sein|to die
+aufwachen|sein|to wake up
+reisen|sein|to travel
+einsteigen|sein|to get on (a bus / train)
+wachsen|sein|to grow
+machen|haben|to do / make
+arbeiten|haben|to work
+essen|haben|to eat
+schlafen|haben|to sleep
+lesen|haben|to read
+kaufen|haben|to buy
+sehen|haben|to see
+schreiben|haben|to write
+lernen|haben|to learn
+trinken|haben|to drink
+telefonieren|haben|to phone
+frühstücken|haben|to have breakfast
+kochen|haben|to cook
+anrufen|haben|to call (phone)
+verstehen|haben|to understand
+besuchen|haben|to visit
+bekommen|haben|to get / receive
+vergessen|haben|to forget`);
+const perfHsQ = ([v, aux, en]) => ({ tag: 'Perfekt · haben oder sein?', key: v, prompt: v, sub: en, kind: 'multi',
+  groups: [{ options: ['haben', 'sein'], answer: aux }],
+  explain: aux === 'sein' ? '<b>sein</b>: movement from A to B, a change of state (aufwachen, einschlafen, sterben …) and sein, bleiben, werden, passieren.' : '<b>haben</b>: most verbs, all verbs with an Akkusativ object and all reflexive verbs.' });
+const PART = rows(`
+machen|gemacht|r
+arbeiten|gearbeitet|r
+kaufen|gekauft|r
+einkaufen|eingekauft|t
+besuchen|besucht|u
+erzählen|erzählt|u
+studieren|studiert|i
+telefonieren|telefoniert|i
+reparieren|repariert|i
+fahren|gefahren|x
+gehen|gegangen|x
+kommen|gekommen|x
+schreiben|geschrieben|x
+lesen|gelesen|x
+sprechen|gesprochen|x
+treffen|getroffen|x
+nehmen|genommen|x
+finden|gefunden|x
+bleiben|geblieben|x
+essen|gegessen|x
+trinken|getrunken|x
+sehen|gesehen|x
+helfen|geholfen|x
+schlafen|geschlafen|x
+fliegen|geflogen|x
+beginnen|begonnen|u
+verstehen|verstanden|u
+vergessen|vergessen|u
+bekommen|bekommen|u
+verlieren|verloren|u
+empfehlen|empfohlen|u
+gewinnen|gewonnen|u
+bestellen|bestellt|u
+anrufen|angerufen|t
+aufstehen|aufgestanden|t
+ankommen|angekommen|t
+einladen|eingeladen|t
+anfangen|angefangen|t
+fernsehen|ferngesehen|t
+umziehen|umgezogen|t
+aufräumen|aufgeräumt|t
+vorbereiten|vorbereitet|v
+mitbringen|mitgebracht|t
+bringen|gebracht|m
+denken|gedacht|m
+wissen|gewusst|m
+kennen|gekannt|m
+werden|geworden|x
+sein|gewesen|x
+haben|gehabt|r`);
+const PART_WHY = { r: 'regular: <b>ge-</b> + stem + <b>-(e)t</b>', x: 'irregular: <b>ge-</b> + (often a new vowel) + <b>-en</b> — learn by heart', t: 'separable verb: prefix + <b>ge</b> + participle (an-ge-rufen, auf-ge-räumt)',
+  u: 'inseparable prefix (be-, er-, ver-, ge-, emp-, ent-, zer-): <b>no ge-</b>', i: 'verbs in -ieren: <b>no ge-</b>, ending -t', v: 'separable vor- + inseparable be-: <b>no ge-</b> → vor-bereit-et', m: 'mixed: new stem + <b>ge- … -t</b> (bringen → gebracht)' };
+const partQ = ([v, p, k]) => typeQ('Partizip II', v, p, 'Partizip II?', PART_WHY[k]);
+const PERF_S = rows(`
+Gestern ___ ich bis zehn Uhr ___.|habe;geschlafen|schlafen
+Wir ___ letztes Jahr nach Spanien ___.|sind;geflogen|fliegen
+___ du schon ___?|hast;gegessen|essen
+Der Zug ___ pünktlich ___.|ist;angekommen|ankommen
+Ich ___ dich gestern dreimal ___.|habe;angerufen|anrufen
+Was ___ ihr am Wochenende ___?|habt;gemacht|machen
+Sie ___ letzten Monat nach Köln ___.|ist;umgezogen|umziehen
+Ich ___ meinen Schlüssel ___.|habe;verloren|verlieren
+Wann ___ du heute ___?|bist;aufgestanden|aufstehen
+Wir ___ den ganzen Tag zu Hause ___.|sind;geblieben|bleiben
+Er ___ mir eine lange E-Mail ___.|hat;geschrieben|schreiben
+Was ___ denn ___?|ist;passiert|passieren
+___ Sie das Formular schon ___?|haben;ausgefüllt|ausfüllen
+Ich ___ das Wort leider nicht ___.|habe;verstanden|verstehen
+Meine Eltern ___ uns zum Essen ___.|haben;eingeladen|einladen
+Er ___ vor einem Jahr Vater ___.|ist;geworden|werden
+Wir ___ gestern im Restaurant Pizza ___.|haben;bestellt|bestellen
+Unsere alte Katze ___ letzte Woche ___.|ist;gestorben|sterben`);
+const perfSQ = ([t, a, inf]) => gapsQ('Perfekt · Satz', t, a, ['haben / sein', 'Partizip II'], inf,
+  'Perfekt = <b>haben / sein</b> (conjugated; position 2 — position 1 in yes/no questions) + <b>Partizip II</b> (at the end).');
+// Präteritum
+const PERS = ['ich', 'du', 'er / sie / es', 'wir', 'ihr', 'sie / Sie'];
+const PR_IRR = rows(`
+gehen|ging
+kommen|kam
+fahren|fuhr
+sehen|sah
+geben|gab
+nehmen|nahm
+finden|fand
+bleiben|blieb
+schreiben|schrieb
+sprechen|sprach
+stehen|stand
+liegen|lag
+sitzen|saß
+lesen|las
+rufen|rief
+laufen|lief
+fliegen|flog
+treffen|traf
+beginnen|begann
+essen|aß
+trinken|trank
+helfen|half
+schlafen|schlief
+vergessen|vergaß`);
+// -te verbs: stem + te, test, te, ten, tet, ten
+const PR_TE = rows(`
+machen|mach
+arbeiten|arbeite
+sagen|sag
+kaufen|kauf
+wohnen|wohn
+spielen|spiel
+warten|warte
+können|konn
+müssen|muss
+wollen|woll
+dürfen|durf
+sollen|soll
+haben|hat
+wissen|wuss
+denken|dach
+bringen|brach
+kennen|kann`);
+const TE_END = ['te', 'test', 'te', 'ten', 'tet', 'ten'];
+const SEIN_PR = ['war', 'warst', 'war', 'waren', 'wart', 'waren'];
+const WERDEN_PR = ['wurde', 'wurdest', 'wurde', 'wurden', 'wurdet', 'wurden'];
+const praetForms = (inf) => {
+  if (inf === 'sein') return SEIN_PR;
+  if (inf === 'werden') return WERDEN_PR;
+  const te = PR_TE.find(r => r[0] === inf);
+  if (te) return TE_END.map(e => te[1] + e);
+  const irr = PR_IRR.find(r => r[0] === inf)[1];
+  return [irr, null, irr, irr + 'en', null, irr + 'en']; // du / ihr of strong verbs are rare in speech — not asked
+};
+const praetItems = infs => infs.flatMap(inf => praetForms(inf).map((f, i) => f && [inf, i]).filter(Boolean));
+const praetQ = ([inf, i]) => {
+  const f = praetForms(inf)[i], strong = PR_IRR.some(r => r[0] === inf);
+  return { tag: 'Präteritum', prompt: `${PERS[i]} · ${inf}`, sub: 'Präteritum?', kind: 'input', answer: [f], show: f,
+    explain: inf === 'sein' || inf === 'werden' ? `${inf}: ${praetForms(inf).join(', ')}` :
+      strong ? `irregular: new stem <b>${praetForms(inf)[0]}</b> · ich / er: no ending · wir / sie: <b>-en</b>` :
+        ['denken', 'bringen', 'wissen', 'kennen', 'haben'].includes(inf) ? `mixed verb: new stem <b>${praetForms(inf)[0].replace(/te$/, '')}-</b> + -te: ${praetForms(inf).join(', ')}` :
+        ['arbeiten', 'warten'].includes(inf) ? `stem ends in -t → <b>-ete</b>: ${praetForms(inf).join(', ')}` :
+        `stem + <b>-te</b>: ${praetForms(inf).join(', ')}${['können', 'müssen', 'dürfen'].includes(inf) ? ' (no umlaut in the Präteritum)' : ''}` };
+};
+const PLUSQ = rows(`
+Als ich am Bahnhof ankam, ___ der Zug schon abgefahren.|war|abfahren → sein
+Nachdem wir gegessen ___, gingen wir spazieren.|hatten|essen → haben
+Ich ___ den Film schon gesehen, deshalb bin ich nicht mitgegangen.|hatte|sehen → haben
+Nachdem sie die Prüfung bestanden ___, feierte sie mit ihren Freunden.|hatte|bestehen → haben
+Er war müde, weil er in der Nacht schlecht geschlafen ___.|hatte|schlafen → haben
+Als die Polizei kam, ___ der Dieb schon weggelaufen.|war|weglaufen → sein
+Nachdem ich nach Berlin umgezogen ___, suchte ich eine neue Arbeit.|war|umziehen → sein
+Wir ___ einen Tisch reserviert, aber das Restaurant war trotzdem voll.|hatten|reservieren → haben
+Nachdem du gegangen ___, kam Anna.|warst|gehen → sein
+Ich konnte nicht in die Wohnung, weil ich meinen Schlüssel vergessen ___.|hatte|vergessen → haben
+Als wir ins Kino kamen, ___ der Film schon angefangen.|hatte|anfangen → haben
+Nachdem es aufgehört ___ zu regnen, gingen die Kinder nach draußen.|hatte|aufhören → haben`);
+const plusqQ = ([t, a, why]) => typeQ('Plusquamperfekt', t, a, '',
+  `${why} → <b>${a}</b><br>Plusquamperfekt = <b>hatte / war</b> + Partizip II: something that happened <i>before</i> another past event (often with nachdem).`);
+const FUTUR = rows(`
+Ich ___ dich morgen anrufen, versprochen!|werde
+Laut Wetterbericht ___ es morgen regnen.|wird
+___ du am Wochenende arbeiten?|wirst
+Wir ___ nächstes Jahr nach Kanada reisen.|werden
+Ihr ___ die Prüfung bestimmt bestehen!|werdet
+Die Preise ___ im nächsten Jahr weiter steigen.|werden
+Er ist nicht gekommen. Er ___ wohl krank sein.|wird
+Ab Montag ___ ich mehr Sport machen.|werde`);
+const futurQ = ([t, a]) => typeQ('Futur I', t, a, '', 'Futur I = <b>werden</b> (conjugated) + infinitive at the end. Used for promises, plans, predictions and guesses (wohl).');
+
+// ---------- 9. Passiv (A-Grammatik 1.5) ----------
+const PASSIV = rows(`
+P|In Deutschland ___ viel Brot ___.|wird;gegessen|essen
+P|Die Briefe ___ jeden Morgen um zehn ___.|werden;gebracht|bringen
+P|In der Schweiz ___ auch Französisch ___.|wird;gesprochen|sprechen
+P|Das Paket ___ morgen ___.|wird;geliefert|liefern
+P|Die Fenster ___ einmal im Monat ___.|werden;geputzt|putzen
+P|Wie ___ dein Name ___?|wird;geschrieben|schreiben
+P|In diesem Restaurant ___ nur mit Karte ___.|wird;bezahlt|bezahlen
+P|Die neuen Mitarbeiter ___ am ersten Tag ___.|werden;eingearbeitet|einarbeiten
+T|Das Haus ___ 1950 ___.|wurde;gebaut|bauen
+T|Die Gäste ___ herzlich ___.|wurden;begrüßt|begrüßen
+T|Der Dieb ___ gestern von der Polizei ___.|wurde;verhaftet|verhaften
+T|Die Straße ___ letzten Sommer ___.|wurde;repariert|reparieren
+T|Wann ___ das Telefon ___?|wurde;erfunden|erfinden
+T|Die Fahrgäste ___ über die Verspätung ___.|wurden;informiert|informieren
+F|Mein Fahrrad ___ ___ worden.|ist;gestohlen|stehlen
+F|Die Rechnung ___ schon ___ worden.|ist;bezahlt|bezahlen
+F|Die Termine ___ leider ___ worden.|sind;verschoben|verschieben
+F|Das Problem ___ endlich ___ worden.|ist;gelöst|lösen
+F|Die Kunden ___ per E-Mail ___ worden.|sind;informiert|informieren
+M|Die Rechnung ___ bis Freitag ___ werden.|muss;bezahlt|müssen / bezahlen
+M|Hier ___ nicht ___ werden.|darf;geraucht|dürfen / rauchen
+M|Das Formular ___ auch online ___ werden.|kann;ausgefüllt|können / ausfüllen
+M|Die Medikamente ___ kühl ___ werden.|müssen;gelagert|müssen / lagern
+M|Das alte Auto ___ leider nicht mehr ___ werden.|kann;repariert|können / reparieren
+M|Die Bücher ___ bis Montag ___ werden.|müssen;zurückgegeben|müssen / zurückgeben`);
+const PASS_LAB = { P: 'Präsens', T: 'Präteritum', F: 'Perfekt', M: 'mit Modalverb' };
+const PASS_F1 = { P: 'werden', T: 'werden (Präteritum)', F: 'sein', M: 'Modalverb' };
+const PASS_WHY = {
+  P: 'Passiv Präsens = <b>werden</b> + Partizip II.',
+  T: 'Passiv Präteritum = <b>wurde(n)</b> + Partizip II.',
+  F: 'Passiv Perfekt = <b>ist / sind</b> + Partizip II + <b>worden</b> (not geworden!).',
+  M: 'Passiv with a modal verb = <b>Modalverb</b> + Partizip II + <b>werden</b> (at the end).',
+};
+const passivQ = ([k, t, a, inf]) => gapsQ(`Passiv · ${PASS_LAB[k]}`, t, a, [PASS_F1[k], 'Partizip II'], `${inf} · ${PASS_LAB[k]}`,
+  `${PASS_WHY[k]}<br>The verb agrees with the subject: singular → wird / wurde / ist / muss, plural → werden / wurden / sind / müssen. No subject at all (Hier wird … / Hier darf nicht …) → singular.`);
+const WERDEN3 = ['Vollverb (to become)', 'Futur', 'Passiv'];
+const WERDEN_F = rows(`
+Mein Bruder wird Arzt.|0
+Ich werde morgen früher kommen.|1
+Das Auto wird gerade repariert.|2
+Im Herbst wird es früh dunkel.|0
+Wir werden im Sommer heiraten.|1
+Die Post wird um zehn Uhr gebracht.|2
+Sie ist letztes Jahr dreißig geworden.|0
+Der Brief wurde gestern abgeschickt.|2
+Keine Sorge, du wirst das schon schaffen!|1
+Die Kinder werden so schnell groß.|0
+Hier wird ein neues Krankenhaus gebaut.|2
+Wirst du mich vom Flughafen abholen?|1`);
+const werdenQ = ([t, i]) => ({ tag: 'werden · Was ist es?', prompt: t, sub: 'Which werden is it?', kind: 'multi', groups: [{ options: WERDEN3, answer: WERDEN3[+i] }],
+  explain: ['werden + noun / adjective = <b>to become</b>.', 'werden + infinitive = <b>Futur</b>.', 'werden + Partizip II = <b>Passiv</b>.'][+i] });
+
+// ---------- 10. Relativsätze (A-Grammatik 3.6, 8.6) ----------
+const REL = rows(`
+N|Das ist der Mann, ___ neben mir wohnt.|der|m|N|subject of the relative clause
+N|Wie heißt die Frau, ___ dort am Fenster steht?|die|f|N|subject of the relative clause
+N|Das ist das Kind, ___ immer so laut singt.|das|n|N|subject of the relative clause
+N|Ich habe Freunde, ___ in Spanien leben.|die|p|N|subject of the relative clause
+N|Kennst du den Film, ___ gerade im Kino läuft?|der|m|N|subject of the relative clause
+N|Wir suchen eine Wohnung, ___ einen Balkon hat.|die|f|N|subject of the relative clause
+A|Das ist der Mann, ___ ich gestern im Park getroffen habe.|den|m|A|treffen + Akkusativ
+A|Wo ist die Jacke, ___ du gestern gekauft hast?|die|f|A|kaufen + Akkusativ
+A|Das Buch, ___ ich gerade lese, ist sehr spannend.|das|n|A|lesen + Akkusativ
+A|Die Leute, ___ wir eingeladen haben, kommen um acht.|die|p|A|einladen + Akkusativ
+A|Der Kuchen, ___ du gebacken hast, schmeckt super!|den|m|A|backen + Akkusativ
+A|Ich finde den Schlüssel nicht, ___ ich gestern auf den Tisch gelegt habe.|den|m|A|legen + Akkusativ
+D|Das ist der Kollege, ___ ich oft bei der Arbeit helfe.|dem|m|D|helfen + Dativ
+D|Die Frau, ___ ich die Blumen geschenkt habe, ist meine Nachbarin.|der|f|D|schenken: wem? → Dativ
+D|Das Kind, ___ der Hund gehört, sucht ihn überall.|dem|n|D|gehören + Dativ
+D|Die Gäste, ___ das Essen nicht geschmeckt hat, sind früh gegangen.|denen|p|D|schmecken + Dativ
+D|Ist das der Mann, ___ du dein altes Auto verkauft hast?|dem|m|D|verkaufen: wem? → Dativ
+D|Das sind die Freunde, ___ ich am meisten vertraue.|denen|p|D|vertrauen + Dativ
+P|Das ist die Firma, bei ___ ich arbeite.|der|f|D|bei + Dativ
+P|Der Kollege, mit ___ ich das Projekt mache, ist heute krank.|dem|m|D|mit + Dativ
+P|Das ist das Thema, über ___ wir gestern gesprochen haben.|das|n|A|sprechen über + Akkusativ
+P|Die Stadt, in ___ ich geboren bin, ist sehr klein.|der|f|D|in + Wo? → Dativ
+P|Das sind die Leute, für ___ ich heute gekocht habe.|die|p|A|für + Akkusativ
+P|Der Urlaub, auf ___ ich mich so gefreut habe, war leider zu kurz.|den|m|A|sich freuen auf + Akkusativ
+P|Die Freunde, mit ___ ich in den Urlaub fahre, kommen aus Köln.|denen|p|D|mit + Dativ
+P|Das ist der Arzt, zu ___ ich immer gehe.|dem|m|D|zu + Dativ
+W|Das ist alles, ___ ich weiß.|was|-|-|after alles, nichts, etwas, vieles → was
+W|Es gibt nichts, ___ ich lieber esse als Pizza.|was|-|-|after nichts → was
+W|Er hat die Prüfung bestanden, ___ mich sehr freut.|was|-|-|refers to the whole sentence before → was
+W|Das ist die Stadt, ___ ich studiert habe.|wo/in der|-|-|place → wo (or: in der)
+W|Ich wohne in Hamburg, ___ es oft regnet.|wo|-|-|city or country name → wo
+W|Das Beste, ___ du jetzt machen kannst, ist schlafen.|was|-|-|after a superlative used as a noun (das Beste) → was`);
+const REL_LAB = { N: 'Nominativ', A: 'Akkusativ', D: 'Dativ', P: 'mit Präposition', W: 'was / wo' };
+const relQ = ([k, t, a, g, c, why]) => typeQ(`Relativpronomen · ${REL_LAB[k]}`, t, a, '',
+  g === '-' ? why : `${GENDER[g]} (from the noun) + ${cspan(c, CASE[c])} (${why}) → <b>${alts(a)[0]}</b>` + (a === 'denen' ? '<br>Dativ plural is <b>denen</b>, not den!' : ''));
+
+// ---------- 11. Konjunktiv II (A-Grammatik 1.4) ----------
+const K2_STEM = { haben: 'hätt', sein: 'wär', werden: 'würd', können: 'könnt', müssen: 'müsst', dürfen: 'dürft', sollen: 'sollt', wollen: 'wollt', wissen: 'wüsst' };
+const K2_END = ['e', 'est', 'e', 'en', 'et', 'en'];
+const k2Form = (inf, i) => inf === 'sein' && i === 1 ? ['wärst', 'wärest'] : inf === 'sein' && i === 4 ? ['wärt', 'wäret'] : [K2_STEM[inf] + K2_END[i]];
+const k2FormQ = ([inf, i]) => { const f = k2Form(inf, i);
+  return { tag: 'Konjunktiv II · Form', prompt: `${PERS[i]} · ${inf}`, sub: 'Konjunktiv II?', kind: 'input', answer: f, show: f[0],
+    explain: `${inf} → <b>${K2_STEM[inf]}-</b> + e / est / e / en / et / en${['sollen', 'wollen'].includes(inf) ? ' (same as Präteritum, no umlaut)' : ''}` }; };
+const K2_S = rows(`
+H|___ Sie mir bitte helfen?|Könnten|können
+H|___ du mir bitte das Salz geben?|Könntest|können
+H|Ich ___ gern einen Kaffee mit Milch.|hätte|haben
+H|___ Sie mir sagen, wie spät es ist?|Würden|werden
+H|___ ich bitte kurz Ihr Telefon benutzen?|Dürfte|dürfen
+H|___ es Ihnen am Dienstag um zehn passen?|Würde|werden
+H|Ich ___ gern einen Termin für nächste Woche.|hätte|haben
+H|___ ihr mir am Samstag beim Umzug helfen?|Könntet|können
+H|___ Sie so nett, das Fenster zu schließen?|Wären|sein
+H|Wir ___ gern einen Tisch für vier Personen reservieren.|würden|werden
+W|Ich wünschte, ich ___ mehr Zeit für meine Familie.|hätte|haben
+W|Wenn ich doch nur schon mit der Arbeit fertig ___!|wäre|sein
+W|Bei diesem Wetter ___ ich jetzt gern am Strand.|wäre|sein
+W|Wenn ich doch nur besser Deutsch sprechen ___!|könnte|können
+W|Wenn er doch nur endlich anrufen ___!|würde|werden
+W|Ich ___ gern wissen, wann der Kurs anfängt.|würde|werden
+R|An deiner Stelle ___ ich zum Arzt gehen.|würde|werden
+R|Du ___ nicht so viel arbeiten.|solltest|sollen
+R|Ihr ___ früher ins Bett gehen.|solltet|sollen
+R|Wenn ich du ___, ___ ich die Stelle nehmen.|wäre;würde|sein / werden
+R|Herr Klein, Sie ___ mehr Wasser trinken.|sollten|sollen
+R|Es ___ besser, wenn du heute zu Hause bleibst.|wäre|sein
+I|Wenn ich mehr Geld ___, ___ ich eine größere Wohnung mieten.|hätte;würde|haben / werden
+I|Wenn das Wetter schöner ___, ___ wir an den See fahren.|wäre;könnten|sein / können
+I|Wenn ich Zeit ___, ___ ich dich besuchen.|hätte;würde|haben / werden
+I|Wenn wir ein Auto ___, ___ wir nicht so lange zur Arbeit fahren.|hätten;müssten|haben / müssen
+W|Ich ___ dir gern helfen, aber ich habe heute keine Zeit.|würde|werden
+I|Wenn ich Chef ___, ___ alle mehr Urlaub bekommen.|wäre;würden|sein / werden
+V|Wenn ich das gewusst ___, ___ ich dich angerufen.|hätte;hätte|haben / haben
+V|Wenn wir früher losgefahren ___, ___ wir den Zug nicht verpasst.|wären;hätten|sein / haben
+V|Ich ___ gern mitgekommen, aber ich war krank.|wäre|sein
+V|Wenn du mich gefragt ___, ___ ich dir geholfen.|hättest;hätte|haben / haben
+V|Fast ___ ich den Termin beim Zahnarzt vergessen!|hätte|haben
+V|Wenn es nicht geregnet ___, ___ wir draußen gegessen.|hätte;hätten|haben / haben`);
+const K2_LAB = { H: 'Höfliche Bitten', W: 'Wünsche', R: 'Ratschläge', I: 'Wenn-Sätze', V: 'Vergangenheit' };
+const K2_WHY = {
+  H: 'Polite requests: <b>Könnten / Würden / Dürfte</b> … + infinitive at the end · <b>Ich hätte gern</b> … = I would like …',
+  W: 'Wishes: <b>hätte / wäre</b> (+ noun / adjective) · <b>könnte / würde</b> + infinitive.',
+  R: 'Advice: <b>An deiner Stelle würde ich</b> … · <b>Du solltest</b> … · <b>Wenn ich du wäre</b>, …',
+  I: 'Unreal condition (now): <b>Wenn</b> + Konj. II (verb at the end), then the main clause starts with the Konj. II verb.',
+  V: 'Unreal past: <b>hätte / wäre</b> + Partizip II (sein-verbs like losfahren, mitkommen → wäre).',
+};
+const k2SQ = ([k, t, a, hint]) => a.includes(';') ? gapsQ(`Konjunktiv II · ${K2_LAB[k]}`, t, a, ['Lücke 1', 'Lücke 2'], hint, K2_WHY[k]) :
+  typeQ(`Konjunktiv II · ${K2_LAB[k]}`, t, a, hint, K2_WHY[k]);
+
+// ---------- 12. Infinitiv mit zu, um … zu / damit, lassen (A-Grammatik 8.4) ----------
+const ZU_OR = rows(`
+Ich habe heute keine Lust, ___ kochen.|zu|Lust haben + zu-infinitive
+Ich muss heute noch ___ kochen.|–|modal verb + infinitive → no zu
+Es ist wichtig, pünktlich ___ sein.|zu|Es ist wichtig + zu-infinitive
+Hast du Zeit, mir ___ helfen?|zu|Zeit haben + zu-infinitive
+Wir gehen heute Abend ___ essen.|–|gehen + infinitive → no zu
+Ich hoffe, dich bald ___ sehen.|zu|hoffen + zu-infinitive
+Er lässt sein Auto in der Werkstatt ___ reparieren.|–|lassen + infinitive → no zu
+Ich habe vergessen, die Tür ___ schließen.|zu|vergessen + zu-infinitive
+Kannst du mir bitte ___ helfen?|–|modal verb → no zu
+Sie versucht, jeden Tag ___ joggen.|zu|versuchen + zu-infinitive
+Ich möchte am Wochenende ___ schwimmen gehen.|–|möchten (modal) → no zu
+Es macht Spaß, mit dir ___ arbeiten.|zu|Es macht Spaß + zu-infinitive
+Bleib doch noch ein bisschen ___ sitzen!|–|bleiben + infinitive → no zu
+Vergiss nicht, Milch ___ kaufen!|zu|vergessen + zu-infinitive
+Ich höre die Nachbarn jeden Abend ___ streiten.|–|hören / sehen + infinitive → no zu
+Ich habe beschlossen, nächstes Jahr in Berlin ___ studieren.|zu|beschließen + zu-infinitive`);
+const zuOrQ = ([t, a, why]) => pickQ('zu oder kein zu?', t, a, ['zu', '–'], why, a === 'zu' ? 'zu' : '–');
+const ZU_FORM = rows(`
+Ich habe vergessen, dich ___.|anzurufen|anrufen
+Es ist schön, dich endlich mal ___.|zu sehen|sehen
+Ich habe heute keine Zeit ___.|einzukaufen|einkaufen
+Vergiss nicht, dein Zimmer ___!|aufzuräumen|aufräumen
+Hast du Lust, mich am Wochenende ___?|zu besuchen|besuchen
+Es ist verboten, hier ___.|zu parken|parken
+Ich versuche, jeden Tag früh ___.|aufzustehen|aufstehen
+Wir haben vor, im Sommer ___.|umzuziehen|umziehen
+Er hat versprochen, mich vom Bahnhof ___.|abzuholen|abholen
+Es ist nicht leicht, in Berlin eine Wohnung ___.|zu finden|finden
+Ich freue mich darauf, euch bald ___.|wiederzusehen|wiedersehen
+Sie hat angefangen, Spanisch ___.|zu lernen|lernen
+Vergiss bitte nicht, die Heizung ___!|auszumachen|ausmachen
+Ich habe keine Lust, dieses Formular ___.|auszufüllen|ausfüllen`);
+const zuFormQ = ([t, a, inf]) => typeQ('Infinitiv mit zu', t, a, inf,
+  a.includes(' ') ? 'normal verb: <b>zu</b> + infinitive (two words)' : 'separable verb: <b>zu</b> goes between prefix and verb, one word (an<b>zu</b>rufen)');
+const UMZU = rows(`
+Ich lerne Deutsch, ___ in Deutschland zu studieren.|um|same subject (ich … ich) + purpose → um … zu
+Ich spreche langsam, ___ du mich verstehst.|damit|different subjects (ich / du) → damit + subordinate clause
+Er ist einfach gegangen, ___ sich zu verabschieden.|ohne|without doing something → ohne … zu
+___ zu lernen, sieht er den ganzen Abend fern.|statt|instead of doing something → statt … zu
+Wir sparen Geld, ___ im Sommer nach Italien zu fahren.|um|same subject + purpose → um … zu
+Ich schreibe dir die Adresse auf, ___ du sie nicht vergisst.|damit|different subjects → damit
+Sie hat die Stelle bekommen, ___ ein Vorstellungsgespräch zu haben.|ohne|without → ohne … zu
+___ den Bus zu nehmen, fahre ich mit dem Fahrrad.|statt|instead of → statt … zu
+Ich stehe früh auf, ___ den Zug nicht zu verpassen.|um|same subject + purpose → um … zu
+Die Mutter lässt das Licht an, ___ das Kind keine Angst hat.|damit|different subjects → damit
+Er hat das Auto gekauft, ___ es vorher zu testen.|ohne|without → ohne … zu
+Ich gehe in die Apotheke, ___ Tabletten gegen Kopfschmerzen zu kaufen.|um|same subject + purpose → um … zu
+Ich gebe dir meine Nummer, ___ du mich anrufen kannst.|damit|different subjects → damit
+___ zu arbeiten, telefoniert er die ganze Zeit mit seiner Freundin.|statt|instead of → statt … zu`);
+// ohne … zu and statt … zu often both make sense — never offer one as the wrong option for the other
+const umzuQ = ([t, a, why]) => { const opts = ['um', 'damit', 'ohne', 'statt'].map(o => (a === 'ohne' && o === 'statt') || (a === 'statt' && o === 'ohne') ? 'dass' : o);
+  return pickQ('um … zu / damit / ohne … zu / statt … zu', t, startsGap(t) ? cap(a) : a, startsGap(t) ? opts.map(cap) : opts, why); };
+const LASSEN = rows(`
+Ich ___ mir morgen die Haare schneiden.|lasse|ich → lasse (somebody else does it for me)
+Er ___ sein Fahrrad morgen reparieren.|lässt|er / sie / es → lässt (with ä!)
+Bitte, Max, ___ mich in Ruhe!|lass|imperative (du) → lass
+Wir ___ uns heute Abend das Essen nach Hause liefern.|lassen|wir → lassen
+___ du dein Auto waschen oder machst du das selbst?|lässt|du → lässt
+Ich habe meinen Regenschirm im Bus ___.|gelassen|full verb (to leave something) → Partizip gelassen
+___ Sie mich bitte durch!|lassen|imperative (Sie) → lassen Sie
+Meine Eltern ___ mich früher nie allein ins Kino gehen.|ließen|Präteritum (allowed) → ließen
+___ euch von einem Experten beraten!|lasst|imperative (ihr) → lasst
+Heute ist Freitag, deshalb ___ uns die Chefin früher nach Hause gehen.|lässt|sie (she) → lässt`);
+const lassenQ = ([t, a, why]) => typeQ('lassen', t, a, '', `${why}<br>lassen + infinitive (no zu) = have something done / allow.`);
+
+// ---------- 13. Komparation (A-Grammatik 4.2) ----------
+const KOMP = rows(`
+gut|besser|am besten
+viel|mehr|am meisten
+gern|lieber|am liebsten
+groß|größer|am größten
+alt|älter|am ältesten
+jung|jünger|am jüngsten
+teuer|teurer|am teuersten
+hoch|höher|am höchsten
+nah|näher|am nächsten
+warm|wärmer|am wärmsten
+kalt|kälter|am kältesten
+lang|länger|am längsten
+kurz|kürzer|am kürzesten
+klein|kleiner|am kleinsten
+schnell|schneller|am schnellsten
+billig|billiger|am billigsten
+dunkel|dunkler|am dunkelsten
+interessant|interessanter|am interessantesten
+wichtig|wichtiger|am wichtigsten
+heiß|heißer|am heißesten
+stark|stärker|am stärksten
+oft|öfter|am häufigsten/am öftesten
+leicht|leichter|am leichtesten
+schwer|schwerer|am schwersten`);
+const kompQ = ([a, k, s]) => ({ tag: 'Komparation · Formen', key: a, prompt: a, sub: 'Komparativ and Superlativ?', kind: 'inputs',
+  solution: `${a} → <b>${k}</b> → <b>${alts(s)[0]}</b>`,
+  fields: [{ label: 'Komparativ', cls: '', answer: k }, { label: 'Superlativ (am …)', cls: '', answer: alts(s)[0], alts: alts(s) }],
+  explain: ['gut', 'viel', 'gern', 'hoch', 'nah', 'oft'].includes(a) ? 'irregular — learn by heart' : a === 'groß' ? 'umlaut + exception: am größten (not größesten)' :
+    /[ßsztd]$/.test(a) ? 'after -t, -d, -s, -ß, -z: am …<b>esten</b>' : ['teuer', 'dunkel'].includes(a) ? '-er / -el lose their e: teu<b>r</b>er, dun<b>k</b>ler' :
+      /[äöü]/.test(k) ? 'short adjectives often get an umlaut: a → ä, o → ö, u → ü' : '-er / am -sten' });
+const ALSWIE = rows(`
+Berlin ist größer ___ München.|als|Komparativ + als
+Mein Bruder ist so alt ___ ich – wir sind Zwillinge.|wie|so + basic form + wie
+Heute ist es genauso kalt ___ gestern.|wie|genauso … wie
+Der ICE ist viel schneller ___ der Bus.|als|Komparativ + als
+Sie spricht besser Deutsch ___ ihr Mann.|als|Komparativ + als
+Das Hotel war nicht so teuer, ___ wir gedacht hatten.|wie|nicht so … wie
+Ich trinke lieber Tee ___ Kaffee.|als|lieber … als
+Er ist doppelt so groß ___ sein kleiner Sohn.|wie|doppelt so … wie
+Die Wohnung ist ganz anders, ___ ich sie mir vorgestellt habe.|als|anders als
+Das Essen war besser, ___ ich erwartet hatte.|als|Komparativ + als
+Sie ist genauso fleißig ___ ihre Schwester.|wie|genauso … wie
+Im Winter ist es hier viel dunkler ___ im Sommer.|als|Komparativ + als`);
+const alsWieQ = ([t, a, why]) => pickQ('als oder wie?', t, a, ['als', 'wie'], why);
+const KOMP_S = rows(`
+Mein Bruder ist drei Jahre ___ als ich.|älter|alt
+Ich trinke ___ Tee als Kaffee.|lieber|gern
+Welches Kleid gefällt dir ___?|am besten|gut, Superlativ
+Im Juli ist es hier ___.|am heißesten|heiß, Superlativ
+Der Fernseher ist mir zu teuer. Haben Sie auch einen ___?|billigeren|billig, Komparativ
+Das war der ___ Tag in meinem Leben.|schönste|schön, Superlativ
+Ich suche eine ___ Wohnung mit mindestens drei Zimmern.|größere|groß, Komparativ
+Je mehr ich übe, desto ___ spreche ich.|besser|gut
+Je ___ ich schlafe, desto müder bin ich.|länger|lang
+Je früher wir losfahren, desto ___ sind wir da.|schneller|schnell
+Die Zugspitze ist der ___ Berg in Deutschland.|höchste|hoch, Superlativ
+Gestern habe ich viel ___ gearbeitet als heute.|mehr|viel
+Wer von euch läuft ___?|am schnellsten|schnell, Superlativ
+Es geht mir heute schon viel ___ als gestern.|besser|gut
+Mein ___ Bruder wohnt in München.|jüngerer|jung, Komparativ
+Wir nehmen das ___ Zimmer mit Blick aufs Meer.|teuerste|teuer, Superlativ`);
+const kompSQ = ([t, a, hint]) => typeQ('Komparation · Satz', t, a, hint,
+  /^(je|Je)/.test(t) ? '<b>je</b> + Komparativ (verb at the end), <b>desto</b> + Komparativ (verb next).' :
+    /(^| )(eine|einen|der|das|Mein) ___/.test(t) ? 'Before a noun the Komparativ / Superlativ also takes an adjective ending (eine größer<b>e</b> Wohnung, das teuerst<b>e</b> Zimmer).' :
+      'After a verb: Komparativ (+ als) · Superlativ with <b>am …sten</b>.');
+
+// ---------- 14. Prüfung: Sprachbausteine ----------
+// Teil 1: a letter with 10 gaps, three options each (the first option listed is NOT always right — answer = index)
+const SB1 = [
+  { title: 'E-Mail an eine Freundin', text: `Liebe Sara,
+
+vielen Dank {1} deine Einladung zu deiner Geburtstagsfeier! Leider kann ich am Samstag nicht kommen, {2} meine Eltern mich am Wochenende besuchen. Ich habe sie seit Weihnachten nicht {3}. Sie kommen am Freitagabend an und bleiben {4} Sonntag. {5} wir uns nächste Woche treffen? Ich {6} dich gern zum Essen einladen, dann kannst du mir alles von der Party erzählen. Ich habe auch schon ein Geschenk für dich, {7} ich in einem kleinen Laden in der Altstadt gefunden habe. Ich glaube, es wird {8} gefallen! Schreib mir einfach, an {9} Tag du Zeit hast. Ich wünsche dir eine tolle Feier {10} viele schöne Geschenke!
+
+Liebe Grüße
+Julia`, gaps: [
+    [['für', 'über', 'an'], 0, 'danken für / Dank für'],
+    [['denn', 'weil', 'deshalb'], 1, 'verb at the end (besuchen) → weil'],
+    [['gesehen', 'sehen', 'sah'], 0, 'Perfekt: habe … gesehen'],
+    [['seit', 'bis', 'ab'], 1, 'from Friday until Sunday → bis'],
+    [['Kannst', 'Können', 'Könnt'], 1, 'subject wir → können'],
+    [['würde', 'wäre', 'hätte'], 0, 'polite offer: ich würde … gern + infinitive'],
+    [['den', 'dem', 'das'], 2, 'das Geschenk (n) · Akkusativ in the relative clause (ich habe es gefunden) → das'],
+    [['dich', 'dir', 'du'], 1, 'gefallen + Dativ → dir'],
+    [['welchen', 'welchem', 'welcher'], 1, 'an + Dativ (Wann?) · der Tag → an welchem Tag'],
+    [['und', 'oder', 'aber'], 0, 'adding → und'],
+  ] },
+  { title: 'Beschwerde an die Hausverwaltung', text: `Sehr geehrte Damen und Herren,
+
+ich wohne seit drei Jahren in Ihrem Haus in der Lindenstraße 12. Leider muss ich mich heute {1} ein Problem beschweren. Seit zwei Wochen funktioniert die Heizung in meiner Wohnung nicht mehr. Ich habe schon zweimal beim Hausmeister angerufen, {2} bis jetzt ist niemand gekommen. Da es nachts schon sehr kalt ist, {3} ich mit einem kleinen Elektroofen heizen. Das ist natürlich sehr teuer. Außerdem habe ich ein kleines Kind, {4} jetzt erkältet ist. Ich bitte Sie deshalb, die Heizung so schnell wie möglich {5} lassen. {6} Sie mir bitte mitteilen, wann ein Techniker kommen kann? Ich bin von Montag bis Freitag erst {7} 17 Uhr zu Hause. Am Wochenende können Sie mich {8} der Nummer 0176 2345678 erreichen. Ich hoffe, dass das Problem bald {9} wird. Für Ihre Hilfe bedanke ich mich schon im {10}.
+
+Mit freundlichen Grüßen
+Ana Petrović`, gaps: [
+    [['auf', 'über', 'für'], 1, 'sich beschweren über + Akkusativ'],
+    [['aber', 'sondern', 'oder'], 0, 'contrast, no negation before → aber'],
+    [['muss', 'müssen', 'müsse'], 0, 'subject ich → muss'],
+    [['der', 'dem', 'das'], 2, 'das Kind (n) · subject of the relative clause → das'],
+    [['zu reparieren', 'reparieren zu', 'repariert zu'], 1, 'bitten + zu-infinitive with lassen: reparieren zu lassen'],
+    [['Hätten', 'Könnten', 'Wären'], 1, 'polite request: Könnten Sie …?'],
+    [['ab', 'seit', 'vor'], 0, 'erst ab 17 Uhr = not before 5 pm'],
+    [['mit', 'auf', 'unter'], 2, 'unter einer Nummer erreichen'],
+    [['lösen', 'gelöst', 'löst'], 1, 'Passiv: wird + Partizip II → gelöst wird'],
+    [['Vorher', 'Voraus', 'Vorne'], 1, 'fixed phrase: im Voraus = in advance'],
+  ] },
+  { title: 'E-Mail an einen Freund', text: `Lieber Markus,
+
+wie geht es dir? Ich habe lange nichts von dir {1}. Bei mir hat sich viel verändert: Seit einem Monat arbeite ich bei {2} neuen Firma in Frankfurt. Die Arbeit gefällt mir sehr gut, und meine Kollegen sind alle sehr nett. Am Anfang war es nicht leicht, {3} ich musste viele neue Programme lernen. Jetzt suche ich eine Wohnung, {4} näher an meinem Büro liegt. Im Moment fahre ich jeden Tag eine Stunde mit dem Zug, und das ist {5} anstrengend. Kennst du vielleicht {6} in Frankfurt, der eine Wohnung vermietet? Ich {7} mich sehr über einen Tipp freuen. Übrigens: Im Mai habe ich eine Woche Urlaub. Hast du Lust, mich {8} besuchen? Wir {9} zusammen ins Museum gehen oder am Main spazieren gehen. Ich freue mich schon {10} deine Antwort!
+
+Viele Grüße
+Paul`, gaps: [
+    [['gehört', 'gehören', 'hörte'], 0, 'Perfekt: habe … gehört'],
+    [['eine', 'einem', 'einer'], 2, 'bei + Dativ · die Firma (f) → einer'],
+    [['denn', 'weil', 'deshalb'], 0, 'normal word order (ich musste) + reason → denn'],
+    [['der', 'die', 'das'], 1, 'die Wohnung (f) · subject of the relative clause → die'],
+    [['ziemlich', 'ziemliche', 'ziemlichen'], 0, 'adverb before an adjective → no ending'],
+    [['jemand', 'jemanden', 'jemandem'], 1, 'kennen + Akkusativ → jemanden'],
+    [['würde', 'hätte', 'wäre'], 0, 'polite wish: ich würde mich freuen'],
+    [['um', 'zum', 'zu'], 2, 'Lust haben + zu-infinitive'],
+    [['könnte', 'könnten', 'könntet'], 1, 'subject wir → könnten'],
+    [['an', 'auf', 'für'], 1, 'sich freuen auf = look forward to'],
+  ] },
+  { title: 'Anfrage an eine Sprachschule', text: `Sehr geehrte Frau Weber,
+
+ich habe Ihre Anzeige in der Zeitung gelesen und interessiere mich {1} Ihren Deutschkurs auf dem Niveau B1. Ich lebe seit zwei Jahren in Deutschland und möchte im Dezember die telc-Prüfung machen. {2} brauche ich noch mehr Übung, vor allem beim Schreiben.
+
+Ich habe noch einige Fragen: Wie viele Teilnehmer {3} in einem Kurs? Ich arbeite tagsüber und habe erst {4} 18 Uhr Zeit. Gibt es auch Abendkurse? Außerdem möchte ich wissen, {5} die Prüfungsgebühr im Kurspreis enthalten ist. Ist es möglich, vor dem Kurs einen Einstufungstest {6} machen? Ich habe zwar schon einen A2-Kurs besucht, {7} ich bin nicht sicher, ob mein Deutsch für B1 reicht.
+
+Bitte schicken Sie mir auch Informationen über die Kurse, {8} im Frühling beginnen. Ich {9} mich freuen, wenn Sie mir bald antworten.
+
+Mit freundlichen {10}
+Aylin Demir`, gaps: [
+    [['auf', 'für', 'an'], 1, 'sich interessieren für + Akkusativ'],
+    [['Weil', 'Obwohl', 'Deshalb'], 2, 'verb right after the gap (brauche) → Deshalb'],
+    [['ist', 'sind', 'seid'], 1, 'Teilnehmer (plural) → sind'],
+    [['ab', 'seit', 'vor'], 0, 'erst ab 18 Uhr = not before 6 pm'],
+    [['dass', 'ob', 'wenn'], 1, 'hidden yes/no question → ob'],
+    [['zu', 'um', 'für'], 0, 'Ist es möglich + zu-infinitive'],
+    [['aber', 'obwohl', 'deshalb'], 0, 'zwar … aber'],
+    [['der', 'die', 'denen'], 1, 'die Kurse (plural) · subject of the relative clause → die'],
+    [['würde', 'wäre', 'hätte'], 0, 'ich würde mich freuen'],
+    [['Grüße', 'Grüßen', 'Gruß'], 1, 'fixed closing: Mit freundlichen Grüßen'],
+  ] },
+];
+// Teil 2: a text with 10 gaps and a box of 15 words (each word fits only once; 5 are left over)
+const SB2 = [
+  { title: 'Mitteilung der Volkshochschule', box: ['am', 'als', 'darauf', 'Deshalb', 'dem', 'der', 'erreichen', 'fahren', 'kennenlernen', 'mit', 'statt', 'Trotzdem', 'wenden', 'wie', 'zur'], text: `Liebe Kursteilnehmerinnen und Kursteilnehmer,
+
+ab nächster Woche finden unsere Kurse in einem neuen Gebäude {1}. Das neue Haus liegt direkt {2} Bahnhof, Sie können es also gut mit öffentlichen Verkehrsmitteln {3}. Leider gibt es dort nur wenige Parkplätze. {4} bitten wir Sie, nicht mit dem Auto zu kommen. Die Kursräume sind größer und heller {5} bisher, und jeder Raum hat jetzt einen Computer. In der ersten Woche gibt es eine kleine Feier, zu {6} wir Sie herzlich einladen. Bei Kaffee und Kuchen können Sie Ihre Lehrerinnen und Lehrer besser {7}. Bitte denken Sie daran, Ihre Kursnummer {8} Anmeldung mitzubringen. Wenn Sie Fragen haben, {9} Sie sich bitte an unser Büro. Wir freuen uns {10}, Sie im neuen Haus zu begrüßen!
+
+Ihr Team der Volkshochschule`, gaps: [
+    ['statt', 'stattfinden is separable: … finden … statt'],
+    ['am', 'direkt am Bahnhof (an + dem)'],
+    ['erreichen', 'etwas mit dem Bus / der Bahn erreichen = get there'],
+    ['Deshalb', 'consequence + verb right after it (bitten wir)'],
+    ['als', 'Komparativ + als'],
+    ['der', 'relative pronoun: die Feier (f), zu + Dativ → zu der (a relative pronoun never contracts to zur)'],
+    ['kennenlernen', 'jemanden besser kennenlernen = get to know'],
+    ['zur', 'zur Anmeldung (zu + der) = to the registration'],
+    ['wenden', 'sich an jemanden wenden = to contact'],
+    ['darauf', 'sich freuen auf → darauf (+ zu-infinitive)'],
+  ] },
+  { title: 'E-Mail: Umzug', box: ['aber', 'als', 'damit', 'darauf', 'Hättest', 'Könntest', 'ob', 'sondern', 'um', 'vom', 'warum', 'weil', 'wie', 'zu', 'zum'], text: `Hallo Tim,
+
+endlich habe ich eine neue Wohnung gefunden! Sie ist nicht sehr groß, {1} sie hat einen schönen Balkon. Die Miete ist auch nicht so hoch {2} in meiner alten Wohnung. Am Samstag ziehe ich {3}. Leider habe ich kein Auto. {4} du mir vielleicht mit deinem Auto helfen? Mein Bruder kommt auch, aber {5} zweit schaffen wir das nicht. Wir fangen schon um neun Uhr an, {6} es am Nachmittag regnen soll. Natürlich lade ich euch danach {7} Essen ein! Die neue Wohnung ist übrigens nur fünf Minuten {8} Stadtpark entfernt, wo wir früher immer gejoggt sind. Ich freue mich schon sehr {9}, dort zu wohnen. Sag mir bitte bis Donnerstag Bescheid, {10} du Zeit hast.
+
+Viele Grüße
+Lena`, gaps: [
+    ['aber', 'aber adds a contrast (sondern would replace the negated part)'],
+    ['wie', 'nicht so … wie'],
+    ['um', 'umziehen is separable: ziehe … um'],
+    ['Könntest', 'polite request: Könntest du …?'],
+    ['zu', 'fixed phrase: zu zweit = the two of us'],
+    ['weil', 'reason + verb at the end (regnen soll)'],
+    ['zum', 'jemanden zum Essen einladen'],
+    ['vom', 'fünf Minuten vom (von + dem) Park entfernt'],
+    ['darauf', 'sich freuen auf → darauf (+ zu-infinitive)'],
+    ['ob', 'hidden yes/no question → ob'],
+  ] },
+];
+const sbPrompt = (text, answers, cur) => text.replace(/\{(\d+)\}/g, (m, n) => +n === cur ? '___' : +n < cur ? `<b>${answers[n - 1]}</b>` : `(${n})`);
+const sb1Qs = L => { const ans = L.gaps.map(([o, i]) => o[i]);
+  return L.gaps.map(([opts, i, why], gi) => ({ tag: `Sprachbausteine Teil 1 · ${L.title}`, prompt: sbPrompt(L.text, ans, gi + 1), cls: 'letter', sub: `Lücke ${gi + 1}: Welche Lösung passt – a, b oder c?`,
+    kind: 'multi', fill: opts[i], groups: [{ options: opts.map((o, k) => `${'abc'[k]}) ${o}`), answer: `${'abc'[i]}) ${opts[i]}` }], explain: why })); };
+const sb2Qs = L => { const ans = L.gaps.map(g => g[0]);
+  return L.gaps.map(([a, why], gi) => ({ tag: `Sprachbausteine Teil 2 · ${L.title}`, prompt: sbPrompt(L.text, ans, gi + 1), cls: 'letter', sub: `Lücke ${gi + 1}: Welches Wort aus dem Kasten passt?`,
+    kind: 'multi', fill: a, groups: [{ options: L.box, answer: a, box: true }], explain: why })); };
+
 // ---------- cheat sheets ----------
 const REF = {
   pron: () => `<table><tr><th class="N">Nominativ</th><th class="A">Akkusativ</th><th class="D">Dativ</th></tr>` +
     PRON.map(p => `<tr><td class="N">${p.lab}</td><td class="A">${p.a}</td><td class="D">${p.d}</td></tr>`).join('') + `</table>
     <p>Only <b>ich, du, er</b> and <b>wir, ihr</b> change in the Akkusativ — sie / es / sie / Sie stay the same.</p>
-    <p>Dativ endings echo the article: de<b>m</b> → ih<b>m</b>, de<b>r</b> → ih<b>r</b>, de<b>n</b> → ihne<b>n</b>.</p>`,
+    <p>Dativ endings echo the article: de<b>m</b> → ih<b>m</b>, de<b>r</b> → ih<b>r</b>, de<b>n</b> → ihne<b>n</b>.</p>
+    <h4>Word order with two objects</h4><p>${RULES.obj2p}<br>${RULES.objnp}<br>${RULES.obj2n}</p>
+    <h4>Indefinitpronomen</h4><p>jemand (somebody) · niemand (nobody) · etwas (something) · nichts (nothing) · alles (everything) · alle (everybody)</p>
+    <p>Replacing a noun: ein Stift → <b>einer</b> (Akk. <b>einen</b>) · eine Tasse → <b>eine</b> · ein Buch → <b>eins</b>; same with kein: keiner / keinen / keine / keins.</p>`,
   poss: () => `<table><tr><th></th><th>maskulin</th><th>feminin</th><th>neutral</th><th>Plural</th></tr>` +
     ['N', 'A', 'D'].map(c => `<tr><td class="${c}">${CASE[c]}</td>` + ['m', 'f', 'n', 'p'].map(g => `<td class="${c}">mein${ENDING[c][g] ? '<b>' + ENDING[c][g] + '</b>' : ''}</td>`).join('') + '</tr>').join('') + `</table>
     <p>${OWNERS.map(([l, s]) => `${l.split(' ')[0]} → <b>${s}</b>`).join(' · ')}</p>
@@ -446,6 +1430,8 @@ const REF = {
   prep: () => `<h4>Präpositionen</h4><p>${PC_WHY.A}</p><p>${PC_WHY.D}</p><p>${PC_WHY.W}</p>
     <h4>Verben mit Dativ</h4><p>${VC.filter(v => v[1] === 'D').map(v => v[0]).join(', ')}</p>
     <h4>Verben mit Dativ + Akkusativ</h4><p>${VC.filter(v => v[1] === 'DA').map(v => v[0]).join(', ')}</p>
+    <h4>da(r)- / wo(r)- + Präposition</h4><p>Thing: Ich warte <b>darauf</b>. <b>Worauf</b> wartest du? · Person: Ich warte auf <b>ihn</b>. Auf <b>wen</b> wartest du? · r before a vowel: dar-an, wor-über.</p>
+    <h4>Zeit</h4><p><b>um</b> 8 Uhr · <b>am</b> Montag / am Wochenende / am 3. Mai / am Abend · <b>im</b> Mai / im Sommer / im Jahr 2020 · <b>in</b> der Nacht · <b>seit</b> 2 Jahren (still true) · <b>vor</b> 2 Jahren (ago) · <b>in</b> 2 Tagen (future) · <b>ab</b> Montag · <b>bis</b> Freitag · <b>von</b> … <b>bis</b> …</p>
     <h4>Verben mit Präposition</h4><table>` + [...VP].sort((a, b) => a[1].localeCompare(b[1])).map(v => `<tr><td>${v[0]} <b>${v[1]}</b></td><td class="${v[2]}">${CASE[v[2]]}</td><td>${v[3]}</td></tr>`).join('') + '</table>',
   satz: () => `<h4>Hauptsatz</h4><div class="schema"><span>Ich</span><span class="v">gehe</span><span>heute ins Kino</span></div>
     <h4>Hauptsatz + Modalverb</h4><div class="schema"><span>Ich</span><span class="v">will</span><span>heute ins Kino</span><span class="inf">gehen</span></div>
@@ -454,7 +1440,65 @@ const REF = {
     <h4>Nebensatz zuerst</h4><div class="schema"><span>Weil ich Zeit habe,</span><span class="v">gehe</span><span>ich</span><span>ins Kino</span></div>
     <p><b>Verb am Ende</b> nach: weil, dass, wenn, ob, obwohl, als, bevor, nachdem, damit, während, bis + W-Wörter (indirekte Frage).</p>
     <p><b>Normale Wortstellung</b> (Position 0) nach: und, aber, oder, denn, sondern.</p>
-    <p>Modalverben: können, müssen, wollen, dürfen, sollen, möchten.</p>`,
+    <p>Modalverben: können, müssen, wollen, dürfen, sollen, möchten.</p>
+    <h4>deshalb, trotzdem … (Position 1)</h4><div class="schema"><span>Es regnet,</span><span>deshalb</span><span class="v">nehme</span><span>ich</span><span>den Bus</span></div>
+    <p>Same pattern: deshalb / darum (so), trotzdem (still), dann (then), sonst (otherwise), außerdem (also).</p>
+    <h4>als / wenn / wann</h4><p><b>als</b> = once in the past · <b>wenn</b> = if / every time / future · <b>wann</b> = question word (when?)</p>
+    <h4>Zweiteilige Konnektoren</h4><p>entweder … oder (either … or) · weder … noch (neither … nor) · sowohl … als auch (both … and) · nicht nur … sondern auch (not only … but also)</p>`,
+  zeit: () => `<h4>Perfekt</h4><div class="schema"><span>Ich</span><span class="v">habe</span><span>gestern lange</span><span class="inf">geschlafen</span></div>
+    <p><b>sein</b> + Partizip: movement (gehen, fahren, fliegen …), change of state (aufstehen, einschlafen, sterben …), sein, bleiben, werden, passieren. Everything else: <b>haben</b>.</p>
+    <table><tr><th>Typ</th><th>Partizip II</th></tr><tr><td>regelmäßig</td><td>ge-mach-t, ge-arbeit-et</td></tr><tr><td>unregelmäßig</td><td>ge-fahr-en, ge-schrieb-en</td></tr>
+    <tr><td>trennbar</td><td>an-ge-rufen, ein-ge-kauft</td></tr><tr><td>be-, er-, ver-, emp- …</td><td>besucht, verstanden (no ge-)</td></tr><tr><td>-ieren</td><td>studiert (no ge-)</td></tr><tr><td>gemischt</td><td>gebracht, gedacht, gewusst</td></tr></table>
+    <h4>Präteritum</h4><table><tr><th></th><th>sein</th><th>haben</th><th>können</th><th>machen</th><th>gehen</th></tr>` +
+    PERS.map((p, i) => `<tr><td>${p}</td><td>${SEIN_PR[i]}</td><td>${praetForms('haben')[i]}</td><td>${praetForms('können')[i]}</td><td>${praetForms('machen')[i]}</td><td>${praetForms('gehen')[i] || '(gingst)'}</td></tr>`).join('') + `</table>
+    <p>In writing (and in reading texts) the Präteritum is normal; in speech use the Perfekt — except sein, haben and the modal verbs.</p>
+    <h4>Plusquamperfekt</h4><p><b>hatte / war</b> + Partizip II = the earlier of two past events: Nachdem ich gegessen <b>hatte</b>, ging ich spazieren.</p>
+    <h4>Futur I</h4><p><b>werden</b> + infinitive: Ich <b>werde</b> dich morgen <b>anrufen</b>.</p>`,
+  passiv: () => `<table><tr><th>Zeit</th><th>Form</th><th>Beispiel</th></tr>
+    <tr><td>Präsens</td><td>wird / werden + Partizip</td><td>Das Auto <b>wird repariert</b>.</td></tr>
+    <tr><td>Präteritum</td><td>wurde / wurden + Partizip</td><td>Das Haus <b>wurde</b> 1950 <b>gebaut</b>.</td></tr>
+    <tr><td>Perfekt</td><td>ist / sind + Partizip + worden</td><td>Das Fahrrad <b>ist gestohlen worden</b>.</td></tr>
+    <tr><td>mit Modalverb</td><td>Modalverb + Partizip + werden</td><td>Die Rechnung <b>muss bezahlt werden</b>.</td></tr></table>
+    <p>Who did it (if important): <b>von</b> + Dativ → Der Dieb wurde <b>von der Polizei</b> verhaftet.</p>
+    <h4>Three kinds of werden</h4><p>werden + noun / adjective = to become · werden + infinitive = Futur · werden + Partizip II = Passiv</p>`,
+  rel: () => `<table><tr><th></th><th>maskulin</th><th>feminin</th><th>neutral</th><th>Plural</th></tr>
+    <tr><td class="N">Nominativ</td><td class="N">der</td><td class="N">die</td><td class="N">das</td><td class="N">die</td></tr>
+    <tr><td class="A">Akkusativ</td><td class="A">den</td><td class="A">die</td><td class="A">das</td><td class="A">die</td></tr>
+    <tr><td class="D">Dativ</td><td class="D">dem</td><td class="D">der</td><td class="D">dem</td><td class="D"><b>denen</b></td></tr></table>
+    <p>Two questions: <b>gender / number</b> → from the noun before the comma · <b>case</b> → from its job inside the relative clause (subject? verb + Akk / Dat? preposition?).</p>
+    <p>Verb at the end: Das ist der Mann, <b>den</b> ich gestern <span class="v">getroffen habe</span>.</p>
+    <p><b>was</b> after alles, nichts, etwas, das Beste or a whole sentence · <b>wo</b> for places (in der Stadt, wo …).</p>`,
+  konj: () => `<table><tr><th></th><th>haben</th><th>sein</th><th>werden</th><th>können</th></tr>` +
+    PERS.map((p, i) => `<tr><td>${p}</td><td>${k2Form('haben', i)[0]}</td><td>${k2Form('sein', i).join(' / ')}</td><td>${k2Form('werden', i)[0]}</td><td>${k2Form('können', i)[0]}</td></tr>`).join('') + `</table>
+    <p>Most other verbs: <b>würde</b> + infinitive (Ich würde gern reisen).</p>
+    <h4>Uses</h4><p><b>Polite:</b> Könnten Sie mir helfen? · Ich hätte gern … · Würden Sie …?<br><b>Wish:</b> Ich wäre jetzt gern am Meer.<br><b>Advice:</b> An deiner Stelle würde ich … · Du solltest …<br>
+    <b>Unreal:</b> Wenn ich Zeit hätte, würde ich kommen.<br><b>Unreal past:</b> Wenn ich das gewusst hätte, wäre ich gekommen.</p>`,
+  inf: () => `<h4>With zu</h4><p>after many verbs and phrases: vergessen, versuchen, hoffen, anfangen, vorhaben, Lust / Zeit haben, Es ist wichtig / schön / verboten …</p>
+    <p>Separable verbs: an<b>zu</b>rufen, auf<b>zu</b>räumen · others: <b>zu</b> sehen</p>
+    <h4>Without zu</h4><p>modal verbs · lassen · gehen, bleiben · hören, sehen + infinitive</p>
+    <h4>Purpose</h4><p><b>um … zu</b> = same subject: Ich lerne, um die Prüfung zu bestehen.<br><b>damit</b> = different subjects: Ich spreche langsam, damit du mich verstehst.</p>
+    <p><b>ohne … zu</b> (without doing) · <b>statt … zu</b> (instead of doing)</p>
+    <h4>lassen</h4><p>ich lasse, du <b>lässt</b>, er <b>lässt</b> · Präteritum ließ · lassen + infinitive = have something done / allow.</p>`,
+  komp: () => `<table><tr><th>Grundform</th><th>Komparativ</th><th>Superlativ</th></tr>` +
+    KOMP.filter(r => ['gut', 'viel', 'gern', 'groß', 'alt', 'teuer', 'hoch', 'nah'].includes(r[0])).map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${alts(r[2])[0]}</td></tr>`).join('') + `</table>
+    <p>Komparativ + <b>als</b> (größer als) · so / genauso + Grundform + <b>wie</b> (so groß wie) · anders <b>als</b></p>
+    <p>Before a noun the adjective ending is added: eine größer<b>e</b> Wohnung, das teuerst<b>e</b> Zimmer.</p>
+    <p><b>je</b> + Komparativ … (verb at the end), <b>desto</b> + Komparativ … (verb next): Je mehr ich übe, desto besser spreche ich.</p>`,
+  pruef: () => `<h4>Sprachbausteine</h4><p>In the exam, Leseverstehen and Sprachbausteine together take <b>90 minutes</b>.</p>
+    <p><b>Teil 1:</b> a letter with 10 gaps, three options each — mostly grammar (prepositions, connectors, pronouns, verb forms).</p>
+    <p><b>Teil 2:</b> a text with 10 gaps and 15 words in a box — every word fits only once, 5 are left over.</p>
+    <h4>Strategy</h4><p>1. Read the whole text first. 2. For each gap ask: what kind of word is missing? 3. Check the word order: verb at the end → weil / dass / obwohl …; verb right after → deshalb / trotzdem …; normal order → denn / aber. 4. Check the case: which preposition or verb comes before?</p>`,
+  refl: () => `<table><tr><th>Person</th><th class="A">Akkusativ</th><th class="D">Dativ</th></tr>` +
+    REFL.map(p => `<tr><td>${p.lab}</td><td class="A">${p.a}</td><td class="D">${p.d}</td></tr>`).join('') + `</table>
+    <p>Like the Personalpronomen, but every 3rd person is <b>sich</b>.</p>
+    <p><b>Akkusativ</b> = the only object: Ich wasche ${cspan('A', 'mich')}.<br><b>Dativ</b> = there is already an Akkusativ object: Ich wasche ${cspan('D', 'mir')} ${cspan('A', 'die Hände')}.</p>
+    <p>Only <b>ich</b> and <b>du</b> look different (mich / mir, dich / dir).</p>`,
+  art: () => `<table><tr><th></th>${G4.map(g => `<th>${GENDER[g]}</th>`).join('')}</tr>` +
+    CASES3.map(c => `<tr><td class="${c}">${CASE[c]}</td>` + G4.map(g => `<td class="${c}">${afRow(c, g).split(' · ').join('<br>')}</td>`).join('') + '</tr>').join('') + `</table>
+    <p>Each cell, top to bottom: <b>der / ein / kein</b>. ein has no plural (–).</p>`,
+  adj: () => ['w', 'g', 's'].map(t => `<h4>${AT_SHORT[t]} — ${AT_LAB[t]}</h4><table><tr><th></th>${G4.map(g => `<th>${GENDER[g]}</th>`).join('')}</tr>` +
+    CASES3.map(c => `<tr><td class="${c}">${CASE[c]}</td>` + G4.map(g => `<td class="${c}">-${AE[t][c][g]}</td>`).join('') + '</tr>').join('') + `</table><p>${AT_RULE[t]}</p>`).join('') +
+    `<p>Gemischt, Plural: with kein / mein (ein has no plural) → meine neu<b>en</b> Schuhe.</p>`,
 };
 
 // ---------- exercises ----------
@@ -475,23 +1519,92 @@ function seededSet(gen, n, seed) {
 }
 const bySet = set => SENT.filter(x => x.set === set);
 const FEATURES = [
-  { id: 'pron', title: 'Personalpronomen', ex: group('pron', 'Akkusativ & Dativ', [PRON], pronQ) },
+  { id: 'pron', title: 'Pronomen', ex: [
+    ...group('pron', 'Personalpronomen · Tabelle', [PRON], pronQ),
+    ...group('pron-s', 'Personalpronomen · Sätze', split(PRON_S, 10, 81), pronSQ),
+    ...group('pron-obj', 'Wortstellung: es ihm / ihm das Buch', [OBJ_S], buildQ),
+    ...group('pron-indef', 'jemand, niemand, einer, keiner …', split(INDEF, 7, 82), indefQ),
+  ] },
+  { id: 'refl', title: 'Reflexivpronomen', ex: [
+    ...group('refl-tab', 'Tabelle', [REFL], reflTabQ),
+    ...group('refl-a', 'Sätze · Akkusativ', split(RS.filter(r => r[2] === 'A'), 10, 31), reflQ),
+    ...group('refl-d', 'Sätze · Dativ', split(RS.filter(r => r[2] === 'D'), 8, 32), reflQ),
+    ...group('refl-mix', 'Akkusativ oder Dativ?', split(RS, 12, 33), reflQ),
+  ] },
+  { id: 'art', title: 'Artikel (ein / kein)', ex: [
+    ...['der', 'ein', 'kein'].map(t => ({ id: 'art-tab-' + t, label: 'Tabelle', note: t, make: () => afCombos(t).map(afTabQ) })),
+    { id: 'art-tab-mix', label: 'Tabelle', note: 'Mix', make: () => sshuffle(['der', 'ein', 'kein'].flatMap(afCombos), 41).slice(0, 14).map(afTabQ) },
+    ...group('art-ein', 'ein / kein in Sätzen', split(EIN_S, 9, 42), einQ),
+    ...group('art-ndekl', 'n-Deklination', split(NDEKL, 8, 44), ndeklQ),
+  ] },
   { id: 'poss', title: 'Possessivartikel', ex: [
     ...CASES3.map((c, i) => ({ id: 'poss-tab-' + c, label: 'Tabelle', note: c, make: () => sshuffle(OWNERS.flatMap(o => G4.map(g => [c, o, g])), 11 + i).slice(0, 10).map(possTableQ) })),
     ...group('poss-end', 'Endungen', [CASES3.flatMap(c => G4.map(g => [c, g]))], possEndQ),
     ...[['N'], ['A'], ['D'], CASES3].map((cs, i) => ({ id: 'poss-satz-' + cs.join(''), label: 'Sätze', note: cs.length > 1 ? 'Mix' : cs[0], make: () => seededSet(() => genPossSentence(cs), 10, 21 + i) })),
+  ] },
+  { id: 'adj', title: 'Adjektivendungen', ex: [
+    ...['w', 'g', 's'].map((t, i) => ({ id: 'adj-end-' + t, label: 'Endungen', note: AT_SHORT[t], make: () => sshuffle(adjCombos(t), 51 + i).slice(0, 12).map(adjEndQ) })),
+    { id: 'adj-end-mix', label: 'Endungen', note: 'Mix', make: () => sshuffle(['w', 'g', 's'].flatMap(adjCombos), 54).slice(0, 14).map(adjEndQ) },
+    ...[['w'], ['g'], ['s'], ['w', 'g', 's']].map((ts, i) => ({ id: 'adj-satz-' + ts.join(''), label: 'Sätze', note: ts.length > 1 ? 'Mix' : AT_SHORT[ts[0]], make: () => seededSet(() => genAdjSentence(ts), 10, 61 + i) })),
+    ...[['w'], ['g'], ['s'], ['w', 'g', 's']].map((ts, i) => ({ id: 'adj-satz2-' + ts.join(''), label: 'Sätze 2', note: ts.length > 1 ? 'Mix' : AT_SHORT[ts[0]], make: () => seededSet(() => genAdjSentence(ts), 10, 71 + i) })),
   ] },
   { id: 'prep', title: 'Präpositionen & Verben', ex: [
     ...group('prep-vp', 'Verb + Präposition', split(VP, 10, 1), vpQ),
     ...group('prep-vc', 'Verb + Kasus', split(VC, 10, 2), vcQ),
     ...group('prep-pc', 'Präposition + Kasus', split(Object.entries(PC).flatMap(([t, ps]) => ps.map(p => [t, p])), 12, 3), pcQ),
     ...group('prep-art', 'Artikel einsetzen', split(ARTS, 9, 4), artQ),
+    ...group('prep-dawo', 'darauf / worauf …', split(DAWO, 8, 83), dawoQ),
+    ...group('prep-temp', 'Zeit: am, im, um, seit, vor …', split(TEMP, 9, 84), tempQ),
   ] },
   { id: 'satz', title: 'Satzbau', ex: [
     ...group('satz-modal', SET_LAB.modal, split(bySet('modal'), 8, 5), buildQ),
     ...group('satz-neben', SET_LAB.neben, split(bySet('neben'), 8, 6), buildQ),
     ...group('satz-nmodal', SET_LAB.nmodal, split(bySet('nmodal'), 8, 7), buildQ),
     ...group('satz-pos', 'Wo steht das Verb?', [VERBPOS], verbPosQ),
+    ...group('satz-neben2', 'Nebensatz (B1): nachdem, bis, seit, damit …', split(NEBEN2_S, 7, 85), buildQ),
+    ...group('satz-kadv', 'deshalb, trotzdem, sonst …', [KADV_S], buildQ),
+    ...group('satz-konj', 'Welches Wort passt? (weil, denn, deshalb …)', split(KONJ_PICK, 10, 86), konjPickQ),
+    ...group('satz-zwei', 'entweder … oder, weder … noch …', [ZWEI], zweiQ),
+  ] },
+  { id: 'zeit', title: 'Zeiten', ex: [
+    ...group('zeit-hs', 'Perfekt: haben oder sein?', split(PERF_HS, 12, 91), perfHsQ),
+    ...group('zeit-part', 'Partizip II', split(PART, 10, 92), partQ),
+    ...group('zeit-perf', 'Perfekt in Sätzen', split(PERF_S, 9, 93), perfSQ),
+    ...group('zeit-pr1', 'Präteritum: sein, haben, werden, Modalverben', split(praetItems(['sein', 'haben', 'werden', 'können', 'müssen', 'wollen', 'dürfen', 'sollen']), 12, 94), praetQ),
+    ...group('zeit-pr2', 'Präteritum: regelmäßig & gemischt', split(sshuffle(praetItems(['machen', 'arbeiten', 'sagen', 'kaufen', 'wohnen', 'spielen', 'warten', 'wissen', 'denken', 'bringen', 'kennen']), 95).slice(0, 24), 12, 96), praetQ),
+    ...group('zeit-pr3', 'Präteritum: unregelmäßig', split(sshuffle(praetItems(PR_IRR.map(r => r[0])), 97).slice(0, 36), 12, 98), praetQ),
+    ...group('zeit-plusq', 'Plusquamperfekt (nachdem)', [PLUSQ], plusqQ),
+    ...group('zeit-futur', 'Futur I', [FUTUR], futurQ),
+  ] },
+  { id: 'passiv', title: 'Passiv', ex: [
+    ...['P', 'T', 'F', 'M'].map((k, i) => ({ id: 'passiv-' + k, label: 'Passiv bilden', note: PASS_LAB[k], make: () => PASSIV.filter(r => r[0] === k).map(passivQ) })),
+    { id: 'passiv-mix', label: 'Passiv bilden', note: 'Mix', make: () => sshuffle(PASSIV, 101).slice(0, 10).map(passivQ) },
+    ...group('passiv-werden', 'werden: Vollverb, Futur oder Passiv?', [WERDEN_F], werdenQ),
+  ] },
+  { id: 'rel', title: 'Relativsätze', ex: [
+    ...['N', 'A', 'D', 'P', 'W'].map(k => ({ id: 'rel-' + k, label: 'Relativpronomen', note: REL_LAB[k], make: () => REL.filter(r => r[0] === k).map(relQ) })),
+    ...group('rel-mix', 'Relativpronomen · Mix', split(REL, 11, 102), relQ),
+  ] },
+  { id: 'konj', title: 'Konjunktiv II', ex: [
+    ...group('konj-f1', 'Formen: hätte, wäre, würde', [['haben', 'sein', 'werden'].flatMap(v => PERS.map((_, i) => [v, i]))], k2FormQ),
+    ...group('konj-f2', 'Formen: Modalverben, wissen', split(['können', 'müssen', 'dürfen', 'sollen', 'wollen', 'wissen'].flatMap(v => PERS.map((_, i) => [v, i])), 12, 103), k2FormQ),
+    ...['H', 'W', 'R', 'I', 'V'].map(k => ({ id: 'konj-' + k, label: 'In Sätzen', note: K2_LAB[k], make: () => K2_S.filter(r => r[0] === k).map(k2SQ) })),
+    { id: 'konj-mix', label: 'In Sätzen', note: 'Mix', make: () => sshuffle(K2_S, 104).slice(0, 12).map(k2SQ) },
+  ] },
+  { id: 'inf', title: 'Infinitiv mit zu', ex: [
+    ...group('inf-or', 'zu oder kein zu?', split(ZU_OR, 8, 111), zuOrQ),
+    ...group('inf-form', 'anzurufen / zu sehen', split(ZU_FORM, 7, 112), zuFormQ),
+    ...group('inf-umzu', 'um … zu, damit, ohne … zu, statt … zu', split(UMZU, 7, 113), umzuQ),
+    ...group('inf-lassen', 'lassen', [LASSEN], lassenQ),
+  ] },
+  { id: 'komp', title: 'Komparation', ex: [
+    ...group('komp-f', 'Formen', split(KOMP, 8, 121), kompQ),
+    ...group('komp-alswie', 'als oder wie?', [ALSWIE], alsWieQ),
+    ...group('komp-s', 'In Sätzen (+ je … desto)', split(KOMP_S, 8, 122), kompSQ),
+  ] },
+  { id: 'pruef', title: 'Prüfung: Sprachbausteine', ex: [
+    ...SB1.map((L, i) => ({ id: 'sb1-' + (i + 1), label: 'Teil 1 (a, b, c)', note: L.title, ordered: true, make: () => sb1Qs(L) })),
+    ...SB2.map((L, i) => ({ id: 'sb2-' + (i + 1), label: 'Teil 2 (Wörterkasten)', note: L.title, ordered: true, make: () => sb2Qs(L) })),
   ] },
 ];
 FEATURES.forEach(F => F.ex.forEach((e, i) => e.n = i + 1));
@@ -536,7 +1649,8 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ---------- rendering ----------
-const gapHtml = (t, fill) => t.replace('___', fill ? `<span class="gap filled">${fill}</span>` : '<span class="gap">&nbsp;</span>');
+// no fill: every gap is shown empty (some sentences have two) · fill: the first gap is filled in
+const gapHtml = (t, fill) => fill ? t.replace('___', `<span class="gap filled">${fill}</span>`) : t.replace(/___/g, '<span class="gap">&nbsp;</span>');
 const noteHtml = e => e.note ? (CASE[e.note] ? cspan(e.note, CASE[e.note]) : e.note) : '';
 function renderNav() {
   $('#nav').innerHTML = FEATURES.map((F, i) => `<button class="${i === state.f ? 'on' : ''}" data-f="${i}"><b>${F.title}</b></button>`).join('');
@@ -557,7 +1671,7 @@ function showList() {
 }
 function startExercise(i) {
   state.ex = feat().ex[i];
-  const d = shuffle(state.ex.make());
+  const d = state.ex.ordered ? state.ex.make() : shuffle(state.ex.make()); // letters keep their reading order
   state.round = { queue: d, total: d.length, asked: 0, right: 0, missed: [] };
   $('#controls').innerHTML = `<div class="chips"><button class="chip" id="toList">← Übungen</button></div>`;
   next();
@@ -590,7 +1704,7 @@ function showSummary() {
 
 function showQuestion(q) {
   cur = { q, done: false, sel: [], placed: [], bank: [] };
-  let h = `<div class="tag">Übung ${state.ex.n} · ${q.progress}</div><div class="prompt" id="prompt">${gapHtml(q.prompt)}</div>`;
+  let h = `<div class="tag">Übung ${state.ex.n} · ${q.progress}</div><div class="prompt${q.cls ? ' ' + q.cls : ''}" id="prompt">${gapHtml(q.prompt)}</div>`;
   if (q.sub) h += `<div class="sub">${q.sub}</div>`;
   const inp = id => `<input type="text" id="${id}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">`;
   if (q.kind === 'input') {
@@ -599,7 +1713,7 @@ function showQuestion(q) {
     h += `<div class="fields">` + q.fields.map((f, i) => `<label class="${f.cls}">${f.label}${inp('ans' + i)}</label>`).join('') +
       `</div><div class="row"><button class="btn" id="check">Prüfen</button></div>`;
   } else if (q.kind === 'multi') {
-    h += q.groups.map((g, gi) => `<div class="group">${g.label ? `<label>${g.label}</label>` : ''}<div class="opts">` +
+    h += q.groups.map((g, gi) => `<div class="group">${g.label ? `<label>${g.label}</label>` : ''}<div class="opts${g.box ? ' box' : ''}">` +
       g.options.map((o, oi) => `<button class="opt" data-g="${gi}" data-o="${oi}">${o}</button>`).join('') + '</div></div>').join('');
   } else {
     const idx = q.tiles.map((_, i) => i);
@@ -646,7 +1760,7 @@ function check() {
     const els = q.fields.map((_, i) => $('#ans' + i));
     const empty = els.find(e => !norm(e.value)); if (empty) { empty.focus(); return; }
     let ok = true;
-    q.fields.forEach((f, i) => { const r = norm(f.answer) === norm(els[i].value); if (!r) ok = false; els[i].classList.add(r ? 'right' : 'wrong'); });
+    q.fields.forEach((f, i) => { const r = (f.alts || [f.answer]).some(a => norm(a) === norm(els[i].value)); if (!r) ok = false; els[i].classList.add(r ? 'right' : 'wrong'); });
     finish(ok, q.solution);
   } else if (q.kind === 'multi') {
     if (q.groups.some((_, gi) => cur.sel[gi] == null)) return;
