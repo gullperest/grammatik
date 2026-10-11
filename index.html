@@ -522,11 +522,18 @@ const SOUNDS = {
 function sfx(name) {
   if (state.mute) return;
   try {
-    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-    if (actx.state === 'suspended') actx.resume();
-    SOUNDS[name]();
-  } catch {}
+    if (actx && actx.state === 'closed') actx = null;
+    const ctx = actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'running') SOUNDS[name]();
+    // 'suspended' or (iOS) 'interrupted': wait until it really runs again before scheduling the sound
+    else ctx.resume().then(() => { if (ctx === actx) SOUNDS[name](); }).catch(() => { actx = null; });
+  } catch { actx = null; }
 }
+// Phones silence the audio context when the app goes to the background or the screen locks, and it often
+// stays silent afterwards while still reporting "running". Throw it away; the next tap creates a fresh one.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && actx) { const old = actx; actx = null; try { old.close().catch(() => {}); } catch {} }
+});
 
 // ---------- rendering ----------
 const gapHtml = (t, fill) => t.replace('___', fill ? `<span class="gap filled">${fill}</span>` : '<span class="gap">&nbsp;</span>');
