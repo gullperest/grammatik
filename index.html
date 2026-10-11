@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Grammatik">
-<meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#17171a" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131f24" media="(prefers-color-scheme: dark)">
 <title>Grammatik Trainer</title>
 <style>
 :root{
@@ -115,6 +115,72 @@ th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute
 .schema{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 12px;font-size:14px}
 .schema span{border:1px solid var(--line);border-radius:6px;padding:4px 8px}
 .schema .v,.schema .inf{text-decoration:none;border-color:currentColor}
+
+/* ---------- playful theme: bright colours, chunky buttons with a pressable 3D edge ---------- */
+:root{
+  --bg:#fff; --bg2:#f7f7f7; --card:#fff; --ink:#3c3c3c; --muted:#777; --line:#e5e5e5; --accent:#1cb0f6;
+  --pri:#58cc02; --pri-d:#58a700; --pri-ink:#fff;
+  --blue:#1cb0f6; --blue-bg:#ddf4ff; --blue-line:#84d8ff;
+  --ok:#58a700; --okbg:#d7ffb8; --okline:#a5ed6e; --bad:#ea2b2b; --badbg:#ffdfe0; --badline:#ffb2b2;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#131f24; --bg2:#202f36; --card:#131f24; --ink:#f1f7fb; --muted:#9fb0ba; --line:#37464f; --accent:#49c0f8;
+    --pri:#93d333; --pri-d:#79b933; --pri-ink:#131f24;
+    --blue:#49c0f8; --blue-bg:#202f36; --blue-line:#3f85a7;
+    --ok:#93d333; --okbg:#202f36; --okline:#5f8428; --bad:#ee5555; --badbg:#202f36; --badline:#a33; }
+}
+body{font-family:ui-rounded,"SF Pro Rounded","Nunito",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+button{font-family:inherit;-webkit-tap-highlight-color:transparent}
+h1{font-weight:800}
+.card{border-width:2px;border-radius:18px}
+.tag{font-weight:700}
+.prompt{font-weight:700}
+
+/* shared shape: 2px outline + a solid edge underneath that disappears when pressed */
+.btn,.opt,.tile,.extile,.badge,.chip,.iconbtn,nav .topic{border:2px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);font-weight:700;
+  box-shadow:0 3px 0 var(--line);transition:transform .06s,box-shadow .06s,filter .1s}
+:is(.btn,.opt,.tile,.extile,.badge,.chip,.iconbtn,nav .topic):not(:disabled):not(.locked):active{transform:translateY(3px);box-shadow:0 0 0 transparent}
+
+.btn{background:var(--pri);border-color:var(--pri);color:var(--pri-ink);box-shadow:0 4px 0 var(--pri-d);text-transform:uppercase;letter-spacing:.04em;font-size:15px;font-weight:800;padding:12px 22px}
+.btn:not(:disabled):hover{filter:brightness(1.06)}
+.btn:not(:disabled):active{transform:translateY(4px)}
+.btn:disabled{background:var(--line);border-color:var(--line);color:var(--muted);box-shadow:none;opacity:1}
+.btn.ghost{background:var(--card);border-color:var(--line);color:var(--blue);box-shadow:0 3px 0 var(--line)}
+
+.opt{padding:11px 18px}
+.opt.sel{background:var(--blue-bg);border-color:var(--blue-line);color:var(--blue);box-shadow:0 3px 0 var(--blue-line)}
+.opt.right{background:var(--okbg);border-color:var(--okline);color:var(--ok);box-shadow:0 3px 0 var(--okline)}
+.opt.wrong{background:var(--badbg);border-color:var(--badline);color:var(--bad);box-shadow:0 3px 0 var(--badline)}
+.tile{border-radius:12px;padding:8px 14px}
+.tile:disabled{box-shadow:none}
+.line{border:2px solid var(--line);border-style:solid none;border-radius:0;padding:10px 2px 13px}
+.bank{gap:8px;padding-bottom:4px}
+
+.extile{padding:12px 14px}
+.extile:not(.done) b{color:var(--blue)}
+.extile.done,.badge.done{background:var(--pri);border-color:var(--pri);color:var(--pri-ink);box-shadow:0 3px 0 var(--pri-d)}
+.extile.done span,.extile.done span *{color:var(--pri-ink)}
+.exgrid{gap:10px 8px}
+.badge{border-radius:10px}
+.chip{color:var(--blue);text-transform:uppercase;letter-spacing:.04em;font-size:12px;font-weight:800;padding:7px 14px}
+.chips{margin-bottom:12px}
+.iconbtn.on{border-color:var(--blue-line);background:var(--blue-bg);box-shadow:0 3px 0 var(--blue-line)}
+
+nav .topic{border-radius:16px}
+nav .topic b{font-weight:800}
+nav .topic i{color:var(--blue)}
+nav .topic span,nav .menu button span{font-weight:700}
+nav .menu{border-width:2px;border-radius:16px}
+nav .menu button{border-bottom-width:2px}
+nav .menu button.on{background:var(--blue-bg);color:var(--blue);box-shadow:none}
+nav .menu button.on span{color:var(--blue)}
+
+input[type=text]{border-width:2px;border-radius:12px;background:var(--bg2)}
+input[type=text]:focus{outline:none;border-color:var(--blue)}
+input[type=text].right{border-color:var(--okline)} input[type=text].wrong{border-color:var(--badline)}
+.fb{border-radius:14px}
+.fb h3{font-size:18px;font-weight:800}
+details{border-width:2px;border-radius:18px}
 </style>
 </head>
 <body>
