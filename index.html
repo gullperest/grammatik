@@ -46,11 +46,18 @@ h1{font-size:20px;margin:0;display:flex;align-items:center;gap:10px}
 .fields label{font-size:13px;font-weight:600}
 .fields input{display:block;width:100%;min-width:0;margin-top:4px}
 input[type=text].right{border-color:var(--ok);background:var(--okbg)} input[type=text].wrong{border-color:var(--bad);background:var(--badbg)}
-nav{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
-nav button{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 6px;cursor:pointer;color:var(--ink);font-size:13px;line-height:1.25}
-nav button b{font-size:14px}
-nav button.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
-@media (max-width:560px){nav{grid-template-columns:repeat(2,1fr)}}
+nav{margin-bottom:14px}
+nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);color:var(--ink);cursor:pointer;font-size:15px;line-height:1.25}
+nav button b{flex:1}
+nav button span{font-size:13px;color:var(--muted);white-space:nowrap}
+nav .topic{border-radius:12px;padding:13px 16px;font-size:17px}
+nav .topic i{font-style:normal;color:var(--muted);transition:transform .15s}
+nav .topic[aria-expanded=true] i{transform:rotate(180deg)}
+nav .menu{margin-top:6px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card);display:grid;grid-template-columns:1fr 1fr}
+nav .menu button{border:0;border-bottom:1px solid var(--line);border-radius:0;padding:12px 16px}
+nav .menu button.on{background:var(--bg);font-weight:600;box-shadow:inset 3px 0 0 var(--accent)}
+nav .menu button.done span{color:var(--ok)}
+@media (max-width:560px){nav .menu{grid-template-columns:1fr}}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center}
 .chips small{color:var(--muted);margin-right:4px;min-width:42px}
 .chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer}
@@ -1653,7 +1660,10 @@ document.addEventListener('visibilitychange', () => {
 const gapHtml = (t, fill) => fill ? t.replace('___', `<span class="gap filled">${fill}</span>`) : t.replace(/___/g, '<span class="gap">&nbsp;</span>');
 const noteHtml = e => e.note ? (CASE[e.note] ? cspan(e.note, CASE[e.note]) : e.note) : '';
 function renderNav() {
-  $('#nav').innerHTML = FEATURES.map((F, i) => `<button class="${i === state.f ? 'on' : ''}" data-f="${i}"><b>${F.title}</b></button>`).join('');
+  // one compact topic button; the full topic list (with progress) opens on tap
+  const F = feat(), prog = G => `${doneCount(G)} / ${G.ex.length}${doneCount(G) === G.ex.length ? ' ✓' : ''}`;
+  $('#nav').innerHTML = `<button class="topic" id="topicBtn" aria-expanded="${!!state.menu}"><b>${F.title}</b><span>${prog(F)}</span><i>▾</i></button>` +
+    (state.menu ? `<div class="menu">` + FEATURES.map((G, i) => `<button class="${i === state.f ? 'on' : ''} ${doneCount(G) === G.ex.length ? 'done' : ''}" data-f="${i}"><b>${G.title}</b><span>${prog(G)}</span></button>`).join('') + '</div>' : '');
   $('#ref').innerHTML = REF[feat().id]();
 }
 
@@ -1670,7 +1680,7 @@ function showList() {
   $('#card').innerHTML = `<div class="tag">${doneCount(F)} / ${F.ex.length} erledigt</div>${h}</div>`;
 }
 function startExercise(i) {
-  state.ex = feat().ex[i];
+  state.ex = feat().ex[i]; state.menu = false; renderNav();
   const d = state.ex.ordered ? state.ex.make() : shuffle(state.ex.make()); // letters keep their reading order
   state.round = { queue: d, total: d.length, asked: 0, right: 0, missed: [] };
   $('#controls').innerHTML = `<div class="chips"><button class="chip" id="toList">← Übungen</button></div>`;
@@ -1692,7 +1702,7 @@ function solText(q) {
 }
 function showSummary() {
   const r = state.round, e = state.ex, F = feat(), prev = state.done[e.id];
-  state.done[e.id] = { best: Math.max(prev ? prev.best : 0, r.right), total: r.total }; save();
+  state.done[e.id] = { best: Math.max(prev ? prev.best : 0, r.right), total: r.total }; save(); renderNav();
   cur = { summary: true, done: true, q: {} };
   const hasNext = e.n < F.ex.length;
   $('#card').innerHTML = `<div class="tag">${F.title}</div><div class="prompt">Übung ${e.n} erledigt ✓</div>
@@ -1807,7 +1817,8 @@ document.addEventListener('click', e => {
   else if (b.id === 'mute') { state.mute = !state.mute; save(); renderProfile(); }
   else if (b.id === 'reset') { if (!confirm('Fortschritt wirklich zurücksetzen?')) return; state.done = {}; save(); renderProfile(); }
   else if (d.jump) { const [f, i] = d.jump.split(',').map(Number); state.f = f; save(); state.ex = FEATURES[f].ex[i]; toggleProfile(false); renderNav(); startExercise(i); }
-  else if (d.f != null) { state.f = +d.f; save(); showList(); }
+  else if (b.id === 'topicBtn') { state.menu = !state.menu; renderNav(); }
+  else if (d.f != null) { state.f = +d.f; state.menu = false; save(); showList(); }
   else if (d.ex != null) startExercise(+d.ex);
   else if (b.id === 'toList') showList();
   else if (b.id === 'nextEx') startExercise(state.ex.n);
