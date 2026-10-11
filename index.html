@@ -181,6 +181,15 @@ input[type=text].right{border-color:var(--okline)} input[type=text].wrong{border
 .fb{border-radius:14px}
 .fb h3{font-size:18px;font-weight:800}
 details{border-width:2px;border-radius:18px}
+details.exgroup{margin:10px 0 0;padding:0;border:0;border-radius:0;border-top:2px solid var(--line)}
+.exgroup summary{display:flex;align-items:center;gap:10px;padding:14px 2px;list-style:none;font-weight:800}
+.exgroup summary::-webkit-details-marker{display:none}
+.exgroup summary::before{content:'▸';color:var(--blue);transition:transform .15s}
+.exgroup[open] summary::before{transform:rotate(90deg)}
+.exgroup summary b{flex:1}
+.exgroup summary span{font-size:13px;color:var(--muted)}
+.exgroup.done summary span{color:var(--ok)}
+.exgroup .exgrid{padding-bottom:10px}
 </style>
 </head>
 <body>
@@ -1686,9 +1695,9 @@ FEATURES.forEach(F => F.ex.forEach((e, i) => e.n = i + 1));
 const store = { get() { try { return JSON.parse(localStorage.getItem('grammatik') || '{}'); } catch { return {}; } }, set(v) { try { localStorage.setItem('grammatik', JSON.stringify(v)); } catch {} } };
 const saved = store.get();
 // done: { exerciseId: { best, total } } — best = most answers right on the first try
-const state = { f: saved.f < FEATURES.length ? saved.f : 0, done: saved.done || {}, mute: !!saved.mute, ex: null, round: null };
+const state = { f: saved.f < FEATURES.length ? saved.f : 0, done: saved.done || {}, mute: !!saved.mute, fold: saved.fold || {}, ex: null, round: null };
 let cur = null;
-const save = () => store.set({ f: state.f, done: state.done, mute: state.mute });
+const save = () => store.set({ f: state.f, done: state.done, mute: state.mute, fold: state.fold });
 const feat = () => FEATURES[state.f];
 const doneCount = F => F.ex.filter(e => state.done[e.id]).length;
 
@@ -1737,14 +1746,20 @@ function renderNav() {
 function showList() {
   state.ex = null; state.round = null; cur = null;
   renderNav(); $('#controls').innerHTML = '';
-  const F = feat(); let h = '', last = null;
-  F.ex.forEach((e, i) => {
-    if (e.label !== last) { h += (last === null ? '' : '</div>') + `<h4>${e.label}</h4><div class="exgrid">`; last = e.label; }
-    const d = state.done[e.id];
-    h += `<button class="extile ${d ? 'done' : ''}" data-ex="${i}"><b>Übung ${e.n}</b><span>${[noteHtml(e), d ? `✓ ${d.best} / ${d.total}` : ''].filter(Boolean).join(' · ') || '&nbsp;'}</span></button>`;
-  });
-  $('#card').innerHTML = `<div class="tag">${doneCount(F)} / ${F.ex.length} erledigt</div>${h}</div>`;
+  const F = feat(), groups = [];
+  F.ex.forEach((e, i) => { const g = groups[groups.length - 1]; if (g && g.label === e.label) g.items.push([e, i]); else groups.push({ label: e.label, items: [[e, i]] }); });
+  // each group folds; a finished group starts folded unless the user opened it (state.fold remembers their choice)
+  $('#card').innerHTML = `<div class="tag">${doneCount(F)} / ${F.ex.length} erledigt</div>` + groups.map(g => {
+    const n = g.items.filter(([e]) => state.done[e.id]).length, all = n === g.items.length, key = F.id + '|' + g.label;
+    const open = key in state.fold ? state.fold[key] : !all;
+    return `<details class="exgroup ${all ? 'done' : ''}" data-key="${key}" ${open ? 'open' : ''}><summary><b>${g.label}</b><span>${n} / ${g.items.length}${all ? ' ✓' : ''}</span></summary><div class="exgrid">` +
+      g.items.map(([e, i]) => { const d = state.done[e.id];
+        return `<button class="extile ${d ? 'done' : ''}" data-ex="${i}"><b>Übung ${e.n}</b><span>${[noteHtml(e), d ? `✓ ${d.best} / ${d.total}` : ''].filter(Boolean).join(' · ') || '&nbsp;'}</span></button>`; }).join('') + '</div></details>';
+  }).join('');
 }
+document.addEventListener('toggle', e => {
+  const k = e.target.dataset && e.target.dataset.key; if (k) { state.fold[k] = e.target.open; save(); }
+}, true);
 function startExercise(i) {
   state.ex = feat().ex[i]; state.menu = false; renderNav();
   const d = state.ex.ordered ? state.ex.make() : shuffle(state.ex.make()); // letters keep their reading order
@@ -1881,7 +1896,7 @@ document.addEventListener('click', e => {
   if (b.id === 'profileBtn') toggleProfile($('#profile').hidden);
   else if (b.id === 'back') toggleProfile(false);
   else if (b.id === 'mute') { state.mute = !state.mute; save(); renderProfile(); }
-  else if (b.id === 'reset') { if (!confirm('Fortschritt wirklich zurücksetzen?')) return; state.done = {}; save(); renderProfile(); }
+  else if (b.id === 'reset') { if (!confirm('Fortschritt wirklich zurücksetzen?')) return; state.done = {}; state.fold = {}; save(); renderProfile(); }
   else if (d.jump) { const [f, i] = d.jump.split(',').map(Number); state.f = f; save(); state.ex = FEATURES[f].ex[i]; toggleProfile(false); renderNav(); startExercise(i); }
   else if (b.id === 'topicBtn') { state.menu = !state.menu; renderNav(); }
   else if (d.f != null) { state.f = +d.f; state.menu = false; save(); showList(); }
