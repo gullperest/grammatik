@@ -638,10 +638,20 @@ const AT_RULE = {
 const MEIN_PL = { N: 'meine', A: 'meine', D: 'meinen' };
 const adjArt = (t, c, g) => t === 'w' ? AF.der[c][g] : t === 's' ? '' : g === 'p' ? MEIN_PL[c] : AF.ein[c][g];
 const adjCombos = t => CASES3.flatMap(c => G4.map(g => [t, c, g]));
+// a real example sentence for every table cell, so the gender and case are visible
+// weak / mixed: things you can count · strong (no article): food, which needs no article
+const END_NOUN = { w: { m: ['Tisch'], f: ['Lampe'], n: ['Auto'], p: ['Schuhe', 'Schuhen'] }, s: { m: ['Käse'], f: ['Milch'], n: ['Brot'], p: ['Tomaten', 'Tomaten'] } };
+END_NOUN.g = END_NOUN.w;
+const END_FRAME = { w: { N: 'Das ist {X}.', A: 'Ich kaufe {X}.', D: 'Ich träume von {X}.' }, s: { N: 'Das ist {X}.', A: 'Ich kaufe {X}.', D: 'Ich koche mit {X}.' } };
+END_FRAME.g = END_FRAME.w;
 function adjEndQ([t, c, g]) {
-  const e = AE[t][c][g], art = adjArt(t, c, g);
-  return { tag: `Adjektivendung · ${AT_SHORT[t]}`, prompt: `${AT_LAB[t]} · ${cspan(c, CASE[c])} · ${GENDER[g]}`, sub: `Which ending? → ${art ? art + ' ' : ''}neu___ …`, kind: 'multi',
-    groups: [{ options: ['e', 'en', 'er', 'es', 'em'], answer: e }], explain: `${art ? art + ' ' : ''}neu<b>${e}</b><br>${AT_RULE[t]}` };
+  const e = AE[t][c][g], art = adjArt(t, c, g), adj = t === 's' ? 'frisch' : 'neu';
+  const [noun, datPl] = END_NOUN[t][g], word = c === 'D' && g === 'p' ? datPl : noun;
+  let frame = END_FRAME[t][c];
+  if (c === 'N' && g === 'p') frame = 'Das sind {X}.';
+  const phrase = (x) => frame.replace('{X}', `${art ? art + ' ' : ''}${adj}${x} ${word}`);
+  return { tag: `Adjektivendung · ${AT_SHORT[t]}`, prompt: phrase('___'), sub: `${AT_LAB[t]} · ${cspan(c, CASE[c])} · ${ART[g]} ${noun} (${GENDER[g]}) — welche Endung?`, kind: 'multi',
+    fill: e, groups: [{ options: ['e', 'en', 'er', 'es', 'em'], answer: e }], explain: `${phrase('<b>' + e + '</b>')}<br>${AT_RULE[t]}` };
 }
 const ADJ_NOUNS = [
   ['m', 'Tisch'], ['m', 'Mantel'], ['m', 'Computer'], ['m', 'Schrank'],
