@@ -1506,8 +1506,176 @@ const sb2Qs = L => { const ans = L.gaps.map(g => g[0]);
   return L.gaps.map(([a, why], gi) => ({ tag: `Sprachbausteine Teil 2 · ${L.title}`, prompt: sbPrompt(L.text, ans, gi + 1), cls: 'letter', sub: `Lücke ${gi + 1}: Welches Wort aus dem Kasten passt?`,
     kind: 'multi', fill: a, groups: [{ options: L.box, answer: a, box: true }], explain: why })); };
 
+// ---------- Akkusativ oder Dativ? (verb lists: A-Grammatik 9.3 / 9.4; example sentences written for this app) ----------
+// verb | A = Akkusativ, D = Dativ, DA = Dativ + Akkusativ | extra complement the book notes | sentence: masculine (or das) noun,
+// so the gap is always den (Akkusativ) or dem (Dativ). In DA sentences the gap is the Dativ (the person).
+const KV = rows(`
+abholen|A|+ von + Dativ (oft)|Ich hole ___ Gast am Bahnhof ab.|der Gast
+absagen|A||Wir müssen ___ Termin leider absagen.|der Termin
+anrufen|A||Ruf bitte ___ Arzt an!|der Arzt
+beantworten|A||Er beantwortet ___ Brief sofort.|der Brief
+bearbeiten|A||Sie bearbeitet gerade ___ Antrag.|der Antrag
+bedienen|A||Der Kellner bedient ___ Gast.|der Gast
+beeinflussen|A||Das Wetter beeinflusst ___ Verkehr.|der Verkehr
+bekämpfen|A||Die Feuerwehr bekämpft ___ Brand.|der Brand
+benutzen|A||Ich benutze ___ Computer jeden Tag.|der Computer
+bestehen|A||Er hat ___ Test bestanden.|der Test
+besuchen|A||Wir besuchen am Sonntag ___ Großvater.|der Großvater
+bezahlen|A||Ich bezahle ___ Kaffee.|der Kaffee
+brauchen|A||Ich brauche ___ Schlüssel.|der Schlüssel
+empfangen|A||Der Chef empfängt ___ Besucher.|der Besucher
+entwickeln|A||Das Team entwickelt ___ Plan.|der Plan
+erhalten|A||Hast du ___ Bescheid schon erhalten?|der Bescheid
+erwarten|A||Wir erwarten ___ Anruf aus Berlin.|der Anruf
+essen|A||Er isst ___ Apfel.|der Apfel
+finden|A||Ich finde ___ Weg nicht.|der Weg
+genießen|A||Wir genießen ___ Urlaub.|der Urlaub
+gründen|A||Sie gründet ___ Verein.|der Verein
+haben|A||Hast du ___ Ausweis dabei?|der Ausweis
+hinterlassen|A|+ für + Akkusativ (oft)|Er hinterlässt ___ Zettel für seine Frau.|der Zettel
+hören|A||Hörst du ___ Regen?|der Regen
+kennen|A||Kennst du ___ Mann dort?|der Mann
+kennenlernen|A||Ich habe gestern ___ Nachbarn kennengelernt.|der Nachbar
+kopieren|A||Bitte kopieren Sie ___ Vertrag.|der Vertrag
+lesen|A||Ich lese gerade ___ Roman.|der Roman
+lieben|A||Sie liebt ___ Hund.|der Hund
+lösen|A||Die Polizei löst ___ Fall.|der Fall
+möchten|A||Ich möchte ___ Salat, bitte.|der Salat
+mögen|A||Magst du ___ Film?|der Film
+planen|A||Wir planen ___ Ausflug.|der Ausflug
+präsentieren|A||Er präsentiert morgen ___ Bericht.|der Bericht
+respektieren|A||Alle respektieren ___ Trainer.|der Trainer
+riechen|A||Ich rieche ___ Kuchen.|der Kuchen
+sehen|A||Siehst du ___ Turm?|der Turm
+speichern|A||Speicher bitte ___ Text!|der Text
+stehlen|A||Jemand hat ___ Koffer gestohlen.|der Koffer
+stören|A||Die Musik stört ___ Nachbarn.|der Nachbar
+suchen|A||Ich suche ___ Bahnhof.|der Bahnhof
+trinken|A||Er trinkt ___ Tee ohne Zucker.|der Tee
+unterstützen|A||Die Stadt unterstützt ___ Sportverein.|der Sportverein
+verarbeiten|A||Die Fabrik verarbeitet ___ Stahl.|der Stahl
+vereinbaren|A||Wir vereinbaren ___ Preis.|der Preis
+vergessen|A||Ich vergesse immer ___ Schirm.|der Schirm
+vorbereiten|A|+ mit + Dativ (oft)|Sie bereitet ___ Vortrag vor.|der Vortrag
+würzen|A|+ mit + Dativ (oft)|Er würzt ___ Fisch mit Salz.|der Fisch
+antworten|D||Warum antwortest du ___ Lehrer nicht?|der Lehrer
+danken|D|+ für + Akkusativ (oft)|Wir danken ___ Fahrer für die Hilfe.|der Fahrer
+folgen|D||Bitte folgen Sie ___ Reiseleiter!|der Reiseleiter
+gefallen|D||Das Bild gefällt ___ Künstler nicht.|der Künstler
+gehören|D||Der Ball gehört ___ Jungen.|der Junge
+glauben|D||Ich glaube ___ Zeugen.|der Zeuge
+helfen|D|+ bei + Dativ (oft)|Hilf bitte ___ Opa!|der Opa
+schmecken|D||Die Suppe schmeckt ___ Gast.|der Gast
+widersprechen|D||Sie widerspricht ___ Chef.|der Chef
+zuhören|D||Hör ___ Lehrer gut zu!|der Lehrer
+bieten|DA||Wir bieten ___ Kunden einen Rabatt.|der Kunde
+anbieten|DA||Sie bietet ___ Gast einen Tee an.|der Gast
+bringen|DA||Ich bringe ___ Nachbarn die Post.|der Nachbar
+mitbringen|DA||Ich bringe ___ Freund ein Geschenk mit.|der Freund
+empfehlen|DA||Der Arzt empfiehlt ___ Patienten eine Pause.|der Patient
+erklären|DA||Die Lehrerin erklärt ___ Schüler die Regel.|der Schüler
+erzählen|DA||Der Opa erzählt ___ Enkel eine Geschichte.|der Enkel
+geben|DA||Gib ___ Hund das Futter!|der Hund
+zurückgeben|DA||Ich gebe ___ Nachbarn die Leiter zurück.|der Nachbar
+gewähren|DA||Die Bank gewährt ___ Kunden einen Kredit.|der Kunde
+holen|DA||Holst du ___ Gast ein Glas Wasser?|der Gast
+leihen|DA||Ich leihe ___ Bruder mein Auto.|der Bruder
+kaufen|DA||Sie kauft ___ Sohn ein Fahrrad.|der Sohn
+schenken|DA|+ zu + Dativ (oft)|Wir schenken ___ Vater ein Buch zum Geburtstag.|der Vater
+schicken|DA||Ich schicke ___ Kollegen die Datei.|der Kollege
+senden|DA||Die Firma sendet ___ Kunden die Rechnung.|der Kunde
+versprechen|DA||Er verspricht ___ Sohn ein Eis.|der Sohn
+waschen|DA||Sie wäscht ___ Kind die Haare.|das Kind
+wünschen|DA|+ zu + Dativ (oft)|Wir wünschen ___ Kollegen viel Glück.|der Kollege
+zeigen|DA||Zeig ___ Touristen den Weg!|der Tourist
+`);
+// verb + preposition | A / D / N (als + Nominativ)
+const KP = rows(`
+abhängen von|D
+achten auf|A
+anfangen mit|D
+arbeiten bei|D
+arbeiten als|N
+arbeiten an|D
+sich ärgern über|A
+sich aufregen über|A
+ausgeben für|A
+beginnen mit|D
+sich bedanken bei|D
+sich bedanken für|A
+berichten über|A
+sich beschäftigen mit|D
+sich beschweren bei|D
+sich beschweren über|A
+bestehen in|D
+bestehen aus|D
+sich bewerben um|A
+bitten um|A
+danken für|A
+denken an|A
+diskutieren mit|D
+diskutieren über|A
+sich entscheiden für|A
+sich entschuldigen bei|D
+sich entschuldigen für|A
+sich erinnern an|A
+sich erkundigen bei|D
+sich erkundigen nach|D
+fragen nach|D
+sich freuen über|A
+sich freuen auf|A
+gehören zu|D
+es geht um|A
+gelten als|N
+gratulieren zu|D
+es handelt sich um|A
+sich interessieren für|A
+lachen über|A
+nachdenken über|A
+reagieren auf|A
+reden über|A
+riechen nach|D
+sprechen mit|D
+sprechen über|A
+stammen aus|D
+sich streiten mit|D
+teilnehmen an|D
+telefonieren mit|D
+träumen von|D
+sich unterhalten mit|D
+sich unterhalten über|A
+verfügen über|A
+verbinden mit|D
+sich verlieben in|A
+sich vorbereiten auf|A
+warten auf|A
+`);
+const KV_LAB = { A: 'Akkusativ', D: 'Dativ', DA: 'Dativ + Akkusativ' }, KV_CLS = { A: 'A', D: 'D', DA: 'D' };
+const kvExplain = (verb, t, extra, sentence) => `<b>${verb}</b> + ${cspan(KV_CLS[t], KV_LAB[t])}${extra ? ` <span class="sub">${extra}</span>` : ''}` +
+  `<br>${sentence.replace('___', `<b>${t === 'A' ? 'den' : 'dem'}</b>`)}<br>${t === 'DA' ? 'Wem? (person) → Dativ · Was? (thing) → Akkusativ' : t === 'D' ? 'Wem? → Dativ' : 'Wen oder was? → Akkusativ'}`;
+function kvCaseQ([verb, t, extra, sentence]) {
+  return { tag: 'Akkusativ oder Dativ?', key: 'kv' + verb, prompt: verb, sub: 'Which case does the object take?', kind: 'multi',
+    groups: [{ options: Object.values(KV_LAB), answer: KV_LAB[t] }], explain: kvExplain(verb, t, extra, sentence) };
+}
+function kvSentQ([verb, t, extra, sentence, noun]) {
+  const a = t === 'A' ? 'den' : 'dem';
+  return { tag: 'den oder dem?', key: 'ks' + verb, prompt: sentence, sub: `<b>${verb}</b> · (${noun})`, kind: 'input', answer: [a], show: sentence.startsWith('___') ? cap(a) : a,
+    explain: kvExplain(verb, t, extra, sentence) };
+}
+function kpQ([verb, c]) {
+  const lab = { A: 'Akkusativ', D: 'Dativ', N: 'Nominativ' };
+  return { tag: 'Verb + Präposition', key: 'kp' + verb, prompt: `${verb} …`, sub: 'Which case comes after the preposition?', kind: 'multi',
+    groups: [{ options: ['Akkusativ', 'Dativ', 'Nominativ'], answer: lab[c] }],
+    explain: `<b>${verb}</b> + ${cspan(c, lab[c])}` + (c === 'N' ? '<br>als + Nominativ: the same person on both sides (Sie arbeitet als Ärztin).' : '') };
+}
+
 // ---------- cheat sheets ----------
 const REF = {
+  kasus: () => `<h4>Verben mit ${cspan('A', 'Akkusativ')}</h4><p>${KV.filter(v => v[1] === 'A').map(v => v[0]).join(', ')}</p>
+    <h4>Verben mit ${cspan('D', 'Dativ')}</h4><p>${KV.filter(v => v[1] === 'D').map(v => v[0]).join(', ')}</p>
+    <h4>Verben mit ${cspan('D', 'Dativ')} + ${cspan('A', 'Akkusativ')}</h4><p>${KV.filter(v => v[1] === 'DA').map(v => v[0]).join(', ')}</p>
+    <p>Dativ = usually the person (wem?), Akkusativ = the thing (was?): Ich gebe ${cspan('D', 'dem Kind')} ${cspan('A', 'den Ball')}.</p>
+    <h4>Verben mit Präposition</h4><table>` + KP.map(([v, c]) => `<tr><td>${v}</td><td class="${c}">${CASE[c]}</td></tr>`).join('') + '</table>',
   pron: () => `<table><tr><th class="N">Nominativ</th><th class="A">Akkusativ</th><th class="D">Dativ</th></tr>` +
     PRON.map(p => `<tr><td class="N">${p.lab}</td><td class="A">${p.a}</td><td class="D">${p.d}</td></tr>`).join('') + `</table>
     <p>Only <b>ich, du, er</b> and <b>wir, ihr</b> change in the Akkusativ — sie / es / sie / Sie stay the same.</p>
@@ -1647,6 +1815,11 @@ const FEATURES = [
     ...group('prep-art', 'Artikel einsetzen', split(ARTS, 9, 4), artQ),
     ...group('prep-dawo', 'darauf / worauf …', split(DAWO, 8, 83), dawoQ),
     ...group('prep-temp', 'Zeit: am, im, um, seit, vor …', split(TEMP, 9, 84), tempQ),
+  ] },
+  { id: 'kasus', title: 'Akkusativ oder Dativ?', ex: [
+    ...group('kasus-verb', 'Verb → Kasus', split(KV, 10, 91), kvCaseQ),
+    ...group('kasus-satz', 'Sätze: den oder dem?', split(KV, 10, 92), kvSentQ),
+    ...group('kasus-prep', 'Verb + Präposition → Kasus', split(KP, 10, 93), kpQ),
   ] },
   { id: 'satz', title: 'Satzbau', ex: [
     ...group('satz-modal', SET_LAB.modal, split(bySet('modal'), 8, 5), buildQ),
