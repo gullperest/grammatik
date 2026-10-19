@@ -590,11 +590,17 @@ const AF = {
 const AF_NOUN = { m: 'Mann', f: 'Frau', n: 'Kind', p: 'Kinder' };
 const afRow = (c, g) => ['der', 'ein', 'kein'].map(t => AF[t][c][g] || '–').join(' · ');
 const afCombos = t => CASES3.flatMap(c => G4.filter(g => AF[t][c][g]).map(g => [t, c, g]));
+// a real sentence for every table cell: the noun shows the gender, the verb shows the case
+const AF_TYPE = { der: 'der / die / das', ein: 'ein / eine', kein: 'kein / keine' };
+const AF_FRAME = { N: ['___ {n} ist hier.', '___ {n} sind hier.'], A: ['Ich sehe ___ {n}.', 'Ich sehe ___ {n}.'], D: ['Ich helfe ___ {n}.', 'Ich helfe ___ {n}.'] };
+const AF_WHY = { N: 'subject → Nominativ', A: 'sehen + Akkusativ', D: 'helfen + Dativ' };
 function afTabQ([t, c, g]) {
-  const a = AF[t][c][g];
-  return { tag: 'Artikel · Tabelle', prompt: `<b>${t}</b> · ${cspan(c, CASE[c])} · ${GENDER[g]}`, sub: `(${ART[g]} ${AF_NOUN[g]})`, kind: 'input', answer: [a], show: a,
-    explain: `${cspan(c, CASE[c])} ${GENDER[g]}: der · ein · kein → <b>${afRow(c, g)}</b>` +
-      (t === 'ein' ? '' : t === 'kein' ? '<br>kein = k + ein, and in the plural it ends like die → keine / keinen.' : '') };
+  const a = AF[t][c][g], word = c === 'D' && g === 'p' ? 'Kindern' : AF_NOUN[g];
+  const t0 = AF_FRAME[c][g === 'p' ? 1 : 0].replace('{n}', word);
+  return { tag: 'Artikel · Tabelle', prompt: t0, sub: `${AF_TYPE[t]} · ${cspan(c, CASE[c])} · ${ART[g]} ${AF_NOUN[g]} (${GENDER[g]})`, kind: 'input', answer: [a], show: startsGap(t0) ? cap(a) : a,
+    explain: `${AF_WHY[c]} · ${GENDER[g]} → <b>${a}</b><br>${cspan(c, CASE[c])} ${GENDER[g]}: der · ein · kein → <b>${afRow(c, g)}</b>` +
+      (c === 'D' && g === 'p' ? '<br>Dativ Plural: the noun also gets <b>-n</b> (den Kinder<b>n</b>).' : '') +
+      (t === 'kein' ? '<br>kein = k + ein, and in the plural it ends like die → keine / keinen.' : '') };
 }
 // sentence | article type | noun | gender | answer | case | why
 const EIN_S = `Ich habe ___ Bruder.|ein|der Bruder|m|einen|A|haben + Akkusativ
