@@ -2002,7 +2002,7 @@ function showQuestion(q) {
   cur = { q, done: false, sel: [], placed: [], bank: [] };
   let h = `<div class="tag">Übung ${state.ex.n} · ${q.progress}</div><div class="prompt${q.cls ? ' ' + q.cls : ''}" id="prompt">${gapHtml(q.prompt)}</div>`;
   if (q.sub) h += `<div class="sub">${q.sub}</div>`;
-  if (q.tip) h += state.tips ? `<div class="sub tip">${q.tip}</div>` : `<button class="tipbtn" id="tipBtn">💡 Tipp</button><div class="sub tip" id="tip" hidden>${q.tip}</div>`;
+  if (q.tip) h += `<button class="tipbtn" id="tipBtn">${state.tips ? '💡 Tipp ausblenden' : '💡 Tipp'}</button><div class="sub tip" id="tip" ${state.tips ? '' : 'hidden'}>${q.tip}</div>`;
   const inp = id => `<input type="text" id="${id}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">`;
   if (q.kind === 'input') {
     h += `<div class="row">${inp('ans')}<button class="btn" id="check">Prüfen</button></div>`;
@@ -2034,10 +2034,11 @@ function drawBuild() {
   $('#check').disabled = cur.done || cur.bank.length > 0;
 }
 
-function showTip(sound) { const t = $('#tip'), b = $('#tipBtn'); if (t && t.hidden) { t.hidden = false; if (b) b.remove(); if (sound) sfx('tap'); } }
+// open: true = show, false = hide, undefined = toggle
+function showTip(open) { const t = $('#tip'), b = $('#tipBtn'); if (!t) return; t.hidden = open === undefined ? !t.hidden : !open; if (b) b.textContent = t.hidden ? '💡 Tipp' : '💡 Tipp ausblenden'; }
 function finish(ok, solution) {
   const q = cur.q, r = state.round; cur.done = true;
-  showTip(false);
+  showTip(true);
   if (!ok) { r.queue.push({ ...q, isRetry: true }); if (!q.isRetry) r.missed.push(q); }
   else if (!q.isRetry) r.right++;
   sfx(ok ? 'ok' : 'bad');
@@ -2105,7 +2106,7 @@ document.addEventListener('click', e => {
   else if (b.id === 'back') toggleProfile(false);
   else if (b.id === 'mute') { state.mute = !state.mute; save(); renderProfile(); }
   else if (b.id === 'tips') { state.tips = !state.tips; save(); renderProfile(); }
-  else if (b.id === 'tipBtn') { showTip(false); }
+  else if (b.id === 'tipBtn') { showTip(); }
   else if (b.id === 'reset') { if (!confirm('Fortschritt wirklich zurücksetzen?')) return; state.done = {}; state.fold = {}; save(); renderProfile(); }
   else if (d.jump) { const [f, i] = d.jump.split(',').map(Number); state.f = f; save(); state.ex = FEATURES[f].ex[i]; toggleProfile(false); renderNav(); startExercise(i); }
   else if (b.id === 'topicBtn') { state.menu = !state.menu; renderNav(); }
