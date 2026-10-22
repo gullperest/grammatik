@@ -190,6 +190,9 @@ details.exgroup{margin:10px 0 0;padding:0;border:0;border-radius:0;border-top:2p
 .exgroup summary span{font-size:13px;color:var(--muted)}
 .exgroup.done summary span{color:var(--ok)}
 .exgroup .exgrid{padding-bottom:10px}
+.tipbtn{margin-top:10px;font-size:13px;font-weight:800;color:var(--blue);background:var(--card);border:2px solid var(--line);border-radius:999px;padding:5px 12px;box-shadow:0 2px 0 var(--line);cursor:pointer}
+.tipbtn:active{transform:translateY(2px);box-shadow:none}
+.sub.tip{margin-top:8px}
 </style>
 </head>
 <body>
@@ -257,14 +260,14 @@ function genPossSentence(cases) {
   const c = rnd(cases), [lab, stem] = rnd(OWNERS), [g, noun, datPl] = rnd(NOUNS), [sg, pl, why] = rnd(POSS_FR[c]);
   const word = c === 'D' && g === 'p' ? datPl : noun;
   const t = (g === 'p' && pl ? pl : sg).replace('{n}', word), a = poss(stem, c, g);
-  return { tag: 'Possessivartikel · Satz', prompt: t, sub: `Besitzer: <b>${lab}</b> · ${ART[g]} ${noun} (${GENDER[g]})`, kind: 'input', answer: [a],
+  return { tag: 'Possessivartikel · Satz', prompt: t, sub: `Besitzer: <b>${lab}</b>`, tip: `${ART[g]} ${noun} (${GENDER[g]})`, kind: 'input', answer: [a],
     show: t.startsWith('___') ? cap(a) : a,
     explain: `${why} → ${cspan(c, CASE[c])} · ${GENDER[g]} → <b>${stem === 'euer' ? 'eu(e)r' : stem}-${ENDING[c][g] || '∅'}</b>` +
       (c === 'D' && g === 'p' ? '<br>Dativ Plural: the noun also gets <b>-n</b>.' : '') };
 }
 function possTableQ([c, [lab, stem], g]) {
   const a = poss(stem, c, g);
-  return { tag: 'Possessivartikel · Tabelle', prompt: `${lab} · ${cspan(c, CASE[c])} · ${GENDER[g]}`, sub: `${stem}- + ?`, kind: 'input', answer: [a], show: a,
+  return { tag: 'Possessivartikel · Tabelle', prompt: `${lab} · ${cspan(c, CASE[c])} · ${GENDER[g]}`, tip: `${stem}- + ?`, kind: 'input', answer: [a], show: a,
     explain: `${cspan(c, CASE[c])} ${GENDER[g]} → Endung <b>-${ENDING[c][g] || '∅'}</b>` + (stem === 'euer' && ENDING[c][g] ? ' · euer loses its e: <b>eur-</b>' : '') };
 }
 function possEndQ([c, g]) {
@@ -332,7 +335,7 @@ const VP_EXCL = { 'sich freuen|auf': ['über'], 'sich freuen|über': ['auf'], 'd
 function vpQ([verb, prep, c, en, s]) {
   const excl = VP_EXCL[verb + '|' + prep] || [];
   const opts = shuffle([prep, ...shuffle(PREPS.filter(p => p !== prep && !excl.includes(p))).slice(0, 4)]);
-  return { tag: 'Verb + Präposition', key: verb + prep, prompt: s, sub: `<b>${verb}</b> — ${en}`, kind: 'multi', fill: prep,
+  return { tag: 'Verb + Präposition', key: verb + prep, prompt: s, tip: `<b>${verb}</b> — ${en}`, kind: 'multi', fill: prep,
     groups: [{ label: 'Präposition', options: opts, answer: prep }, { label: 'Kasus danach', options: ['Akkusativ', 'Dativ'], answer: CASE[c] }],
     explain: `<b>${verb} ${prep}</b> + ${cspan(c, CASE[c])}` };
 }
@@ -386,7 +389,7 @@ bleiben|N|to stay / remain|Er bleibt mein Freund.`.split('\n').map(l => l.split(
 const VC_LAB = { N: 'Nominativ', A: 'Akkusativ', D: 'Dativ', DA: 'Dativ + Akkusativ' };
 const VC_WHY = { N: 'Like an “=” sign: both sides are Nominativ.', A: 'Wen oder was? → Akkusativ (the usual case).', D: 'Wem? → Dativ. Dative verbs have to be memorised.', DA: 'Wem? (person) → Dativ · Was? (thing) → Akkusativ.' };
 function vcQ([verb, t, en, ex]) {
-  return { tag: 'Verb + Kasus', key: verb, prompt: verb, sub: `${en} — which case does the object take?`, kind: 'multi',
+  return { tag: 'Verb + Kasus', key: verb, prompt: verb, sub: 'Which case does the object take?', tip: en, kind: 'multi',
     groups: [{ options: Object.values(VC_LAB), answer: VC_LAB[t] }], explain: `<b>${verb}</b> + ${VC_LAB[t]}<br><i>${ex}</i><br>${VC_WHY[t]}` };
 }
 
@@ -439,7 +442,7 @@ Ich denke an ___ Urlaub.|der Urlaub|den|A|denken an + Akkusativ
 Sie interessiert sich für ___ Film.|der Film|den|A|sich interessieren für + Akkusativ
 Er nimmt an ___ Prüfung teil.|die Prüfung|der|D|teilnehmen an + Dativ`.split('\n').map(l => l.split('|'));
 function artQ([t, noun, a, c, why]) {
-  return { tag: 'Artikel einsetzen', prompt: t, sub: `(${noun})`, kind: 'input', answer: [a], show: t.startsWith('___') ? cap(a) : a,
+  return { tag: 'Artikel einsetzen', prompt: t, tip: `(${noun})`, kind: 'input', answer: [a], show: t.startsWith('___') ? cap(a) : a,
     explain: `${why} → ${cspan(c, CASE[c])}<br>der / die / das / die → ${cspan('A', 'den / die / das / die')} → ${cspan('D', 'dem / der / dem / den')}` };
 }
 
@@ -597,7 +600,7 @@ const AF_WHY = { N: 'subject → Nominativ', A: 'sehen + Akkusativ', D: 'helfen 
 function afTabQ([t, c, g]) {
   const a = AF[t][c][g], word = c === 'D' && g === 'p' ? 'Kindern' : AF_NOUN[g];
   const t0 = AF_FRAME[c][g === 'p' ? 1 : 0].replace('{n}', word);
-  return { tag: 'Artikel · Tabelle', prompt: t0, sub: `${AF_TYPE[t]} · ${cspan(c, CASE[c])} · ${ART[g]} ${AF_NOUN[g]} (${GENDER[g]})`, kind: 'input', answer: [a], show: startsGap(t0) ? cap(a) : a,
+  return { tag: 'Artikel · Tabelle', prompt: t0, sub: AF_TYPE[t], tip: `${cspan(c, CASE[c])} · ${ART[g]} ${AF_NOUN[g]} (${GENDER[g]})`, kind: 'input', answer: [a], show: startsGap(t0) ? cap(a) : a,
     explain: `${AF_WHY[c]} · ${GENDER[g]} → <b>${a}</b><br>${cspan(c, CASE[c])} ${GENDER[g]}: der · ein · kein → <b>${afRow(c, g)}</b>` +
       (c === 'D' && g === 'p' ? '<br>Dativ Plural: the noun also gets <b>-n</b> (den Kinder<b>n</b>).' : '') +
       (t === 'kein' ? '<br>kein = k + ein, and in the plural it ends like die → keine / keinen.' : '') };
@@ -622,7 +625,7 @@ Ich habe mit ___ Kollegen darüber gesprochen.|kein|die Kollegen|p|keinen|D|mit 
 ___ Kollege hat mir geholfen.|ein|der Kollege|m|ein|N|Subjekt → Nominativ
 Ich gebe ___ Kind einen Apfel.|ein|das Kind|n|einem|D|geben: wem? → Dativ`.split('\n').map(l => l.split('|'));
 function einQ([t, type, noun, g, a, c, why]) {
-  return { tag: 'ein / kein · Satz', prompt: t, sub: `(${type} · ${noun})`, kind: 'input', answer: [a], show: t.startsWith('___') ? cap(a) : a,
+  return { tag: 'ein / kein · Satz', prompt: t, sub: `(${type})`, tip: noun, kind: 'input', answer: [a], show: t.startsWith('___') ? cap(a) : a,
     explain: `${why} → ${cspan(c, CASE[c])} · ${GENDER[g]} → <b>${type === 'ein' ? 'ein' : 'kein'}-${(AF[type][c][g] || '').replace(/^k?ein/, '') || '∅'}</b>` };
 }
 
@@ -656,7 +659,7 @@ function adjEndQ([t, c, g]) {
   let frame = END_FRAME[t][c];
   if (c === 'N' && g === 'p') frame = 'Das sind {X}.';
   const phrase = (x) => frame.replace('{X}', `${art ? art + ' ' : ''}${adj}${x} ${word}`);
-  return { tag: `Adjektivendung · ${AT_SHORT[t]}`, prompt: phrase('___'), sub: `${AT_LAB[t]} · ${cspan(c, CASE[c])} · ${ART[g]} ${noun} (${GENDER[g]}) — welche Endung?`, kind: 'multi',
+  return { tag: `Adjektivendung · ${AT_SHORT[t]}`, prompt: phrase('___'), sub: 'Welche Endung?', tip: `${AT_LAB[t]} · ${cspan(c, CASE[c])} · ${ART[g]} ${noun} (${GENDER[g]})`, kind: 'multi',
     fill: e, groups: [{ options: ['e', 'en', 'er', 'es', 'em'], answer: e }], explain: `${phrase('<b>' + e + '</b>')}<br>${AT_RULE[t]}` };
 }
 const ADJ_NOUNS = [
@@ -692,7 +695,7 @@ function genAdjSentence(types) {
   const [sg, pl, why] = rnd(frames);
   const word = c === 'D' && g === 'p' ? datPl : noun, art = adjArt(t, c, g), e = AE[t][c][g];
   const prompt = (g === 'p' && pl ? pl : sg).replace('{X}', `${art ? art + ' ' : ''}___ ${word}`);
-  return { tag: `Adjektivendung · ${AT_SHORT[t]} · Satz`, prompt, sub: `Adjektiv: <b>${adj}</b> · ${ART[g]} ${noun} (${GENDER[g]})`, kind: 'input', answer: [adj + e], show: adj + e,
+  return { tag: `Adjektivendung · ${AT_SHORT[t]} · Satz`, prompt, sub: `Adjektiv: <b>${adj}</b>`, tip: `${ART[g]} ${noun} (${GENDER[g]})`, kind: 'input', answer: [adj + e], show: adj + e,
     explain: `${why} → ${cspan(c, CASE[c])} · ${GENDER[g]} · ${AT_SHORT[t]} (${AT_LAB[t]}) → <b>${adj}-${e}</b><br>${AT_RULE[t]}` +
       (c === 'D' && g === 'p' ? '<br>Dativ Plural: the noun also gets <b>-n</b>.' : '') };
 }
@@ -941,7 +944,7 @@ verstehen|haben|to understand
 besuchen|haben|to visit
 bekommen|haben|to get / receive
 vergessen|haben|to forget`);
-const perfHsQ = ([v, aux, en]) => ({ tag: 'Perfekt · haben oder sein?', key: v, prompt: v, sub: en, kind: 'multi',
+const perfHsQ = ([v, aux, en]) => ({ tag: 'Perfekt · haben oder sein?', key: v, prompt: v, tip: en, kind: 'multi',
   groups: [{ options: ['haben', 'sein'], answer: aux }],
   explain: aux === 'sein' ? '<b>sein</b>: movement from A to B, a change of state (aufwachen, einschlafen, sterben …) and sein, bleiben, werden, passieren.' : '<b>haben</b>: most verbs, all verbs with an Akkusativ object and all reflexive verbs.' });
 const PART = rows(`
@@ -1665,7 +1668,7 @@ function kvCaseQ([verb, t, extra, sentence]) {
 }
 function kvSentQ([verb, t, extra, sentence, noun]) {
   const a = t === 'A' ? 'den' : 'dem';
-  return { tag: 'den oder dem?', key: 'ks' + verb, prompt: sentence, sub: `<b>${verb}</b> · (${noun})`, kind: 'input', answer: [a], show: sentence.startsWith('___') ? cap(a) : a,
+  return { tag: 'den oder dem?', key: 'ks' + verb, prompt: sentence, tip: `<b>${verb}</b> · (${noun})`, kind: 'input', answer: [a], show: sentence.startsWith('___') ? cap(a) : a,
     explain: kvExplain(verb, t, extra, sentence) };
 }
 function kpQ([verb, c]) {
@@ -1884,9 +1887,9 @@ FEATURES.forEach(F => F.ex.forEach((e, i) => e.n = i + 1));
 const store = { get() { try { return JSON.parse(localStorage.getItem('grammatik') || '{}'); } catch { return {}; } }, set(v) { try { localStorage.setItem('grammatik', JSON.stringify(v)); } catch {} } };
 const saved = store.get();
 // done: { exerciseId: { best, total } } — best = most answers right on the first try
-const state = { f: saved.f < FEATURES.length ? saved.f : 0, done: saved.done || {}, mute: !!saved.mute, fold: saved.fold || {}, ex: null, round: null };
+const state = { f: saved.f < FEATURES.length ? saved.f : 0, done: saved.done || {}, mute: !!saved.mute, tips: !!saved.tips, fold: saved.fold || {}, ex: null, round: null };
 let cur = null;
-const save = () => store.set({ f: state.f, done: state.done, mute: state.mute, fold: state.fold });
+const save = () => store.set({ f: state.f, done: state.done, mute: state.mute, tips: state.tips, fold: state.fold });
 const feat = () => FEATURES[state.f];
 const doneCount = F => F.ex.filter(e => state.done[e.id]).length;
 
@@ -1999,6 +2002,7 @@ function showQuestion(q) {
   cur = { q, done: false, sel: [], placed: [], bank: [] };
   let h = `<div class="tag">Übung ${state.ex.n} · ${q.progress}</div><div class="prompt${q.cls ? ' ' + q.cls : ''}" id="prompt">${gapHtml(q.prompt)}</div>`;
   if (q.sub) h += `<div class="sub">${q.sub}</div>`;
+  if (q.tip) h += state.tips ? `<div class="sub tip">${q.tip}</div>` : `<button class="tipbtn" id="tipBtn">💡 Tipp</button><div class="sub tip" id="tip" hidden>${q.tip}</div>`;
   const inp = id => `<input type="text" id="${id}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">`;
   if (q.kind === 'input') {
     h += `<div class="row">${inp('ans')}<button class="btn" id="check">Prüfen</button></div>`;
@@ -2030,8 +2034,10 @@ function drawBuild() {
   $('#check').disabled = cur.done || cur.bank.length > 0;
 }
 
+function showTip(sound) { const t = $('#tip'), b = $('#tipBtn'); if (t && t.hidden) { t.hidden = false; if (b) b.remove(); if (sound) sfx('tap'); } }
 function finish(ok, solution) {
   const q = cur.q, r = state.round; cur.done = true;
+  showTip(false);
   if (!ok) { r.queue.push({ ...q, isRetry: true }); if (!q.isRetry) r.missed.push(q); }
   else if (!q.isRetry) r.right++;
   sfx(ok ? 'ok' : 'bad');
@@ -2080,7 +2086,7 @@ function renderProfile() {
   const blocks = FEATURES.map((F, fi) => `<h4>${F.title} — ${doneCount(F)} / ${F.ex.length} erledigt</h4><div class="badges">` +
     F.ex.map((e, i) => { const d = state.done[e.id]; return `<button class="badge ${d ? 'done' : ''}" data-jump="${fi},${i}" title="${e.label}">${e.n}${d ? ' ✓' : ''}</button>`; }).join('') + '</div>').join('');
   $('#profile').innerHTML = `<div class="card"><div class="tag">Profil</div>${blocks}
-    <h4>Einstellungen</h4><div class="row" style="margin-top:8px"><button class="btn ghost" id="mute">${state.mute ? '🔇 Ton aus' : '🔊 Ton an'}</button><button class="btn ghost" id="reset">Fortschritt zurücksetzen</button></div>
+    <h4>Einstellungen</h4><div class="row" style="margin-top:8px"><button class="btn ghost" id="mute">${state.mute ? '🔇 Ton aus' : '🔊 Ton an'}</button><button class="btn ghost" id="tips">${state.tips ? '💡 Tipps: immer zeigen' : '💡 Tipps: auf Antippen'}</button><button class="btn ghost" id="reset">Fortschritt zurücksetzen</button></div>
     <h4>Tipps</h4><p>Each exercise asks every question once; mistakes are asked again at the end. ✓ = finished — tap a number to open that exercise.</p>
     <p>Keyboard: <kbd>Enter</kbd> checks / goes on · <kbd>1</kbd>–<kbd>5</kbd> pick an option.</p>
     <p>Colours: ${cspan('N', 'Nominativ')} · ${cspan('A', 'Akkusativ')} · ${cspan('D', 'Dativ')} · <span class="v">konjugiertes Verb</span> · <span class="inf">Infinitiv</span></p>
@@ -2098,6 +2104,8 @@ document.addEventListener('click', e => {
   if (b.id === 'profileBtn') toggleProfile($('#profile').hidden);
   else if (b.id === 'back') toggleProfile(false);
   else if (b.id === 'mute') { state.mute = !state.mute; save(); renderProfile(); }
+  else if (b.id === 'tips') { state.tips = !state.tips; save(); renderProfile(); }
+  else if (b.id === 'tipBtn') { showTip(false); }
   else if (b.id === 'reset') { if (!confirm('Fortschritt wirklich zurücksetzen?')) return; state.done = {}; state.fold = {}; save(); renderProfile(); }
   else if (d.jump) { const [f, i] = d.jump.split(',').map(Number); state.f = f; save(); state.ex = FEATURES[f].ex[i]; toggleProfile(false); renderNav(); startExercise(i); }
   else if (b.id === 'topicBtn') { state.menu = !state.menu; renderNav(); }
