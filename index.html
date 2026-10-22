@@ -1662,21 +1662,234 @@ warten auf|A
 const KV_LAB = { A: 'Akkusativ', D: 'Dativ', DA: 'Dativ + Akkusativ' }, KV_CLS = { A: 'A', D: 'D', DA: 'D' };
 const kvExplain = (verb, t, extra, sentence) => `<b>${verb}</b> + ${cspan(KV_CLS[t], KV_LAB[t])}${extra ? ` <span class="sub">${extra}</span>` : ''}` +
   `<br>${sentence.replace('___', `<b>${t === 'A' ? 'den' : 'dem'}</b>`)}<br>${t === 'DA' ? 'Wem? (person) → Dativ · Was? (thing) → Akkusativ' : t === 'D' ? 'Wem? → Dativ' : 'Wen oder was? → Akkusativ'}`;
-function kvCaseQ([verb, t, extra, sentence]) {
-  return { tag: 'Akkusativ oder Dativ?', key: 'kv' + verb, prompt: verb, sub: 'Which case does the object take?', kind: 'multi',
-    groups: [{ options: Object.values(KV_LAB), answer: KV_LAB[t] }], explain: kvExplain(verb, t, extra, sentence) };
-}
 function kvSentQ([verb, t, extra, sentence, noun]) {
   const a = t === 'A' ? 'den' : 'dem';
   return { tag: 'den oder dem?', key: 'ks' + verb, prompt: sentence, tip: `<b>${verb}</b> · (${noun})`, kind: 'input', answer: [a], show: sentence.startsWith('___') ? cap(a) : a,
     explain: kvExplain(verb, t, extra, sentence) };
 }
-function kpQ([verb, c]) {
-  const lab = { A: 'Akkusativ', D: 'Dativ', N: 'Nominativ' };
-  return { tag: 'Verb + Präposition', key: 'kp' + verb, prompt: `${verb} …`, sub: 'Which case comes after the preposition?', kind: 'multi',
-    groups: [{ options: ['Akkusativ', 'Dativ', 'Nominativ'], answer: lab[c] }],
-    explain: `<b>${verb}</b> + ${cspan(c, lab[c])}` + (c === 'N' ? '<br>als + Nominativ: the same person on both sides (Sie arbeitet als Ärztin).' : '') };
+
+// telc-style gap sentences: verb (key into KV / KP) | sentence | right answer | two wrong options
+const KS = rows(`
+abholen|Kannst du ___ heute vom Bahnhof abholen?|mich|mir|ich
+absagen|Leider muss ich ___ Termin morgen absagen.|den|dem|der
+anrufen|Lisa hat heute Geburtstag. Ruf ___ doch an!|sie|ihr|ihre
+beantworten|Hast du ___ E-Mail von Herrn Braun schon beantwortet?|die|der|den
+bearbeiten|Wir bearbeiten ___ Auftrag so schnell wie möglich.|Ihren|Ihrem|Ihrer
+bedienen|Einen Moment bitte, ich bediene ___ gleich, Herr Schulz.|Sie|Ihnen|Ihr
+beeinflussen|Die Werbung beeinflusst ___ Entscheidung.|unsere|unserer|unserem
+bekämpfen|Die Ärzte bekämpfen ___ Virus mit neuen Medikamenten.|das|dem|den
+benutzen|Darf ich ___ Computer kurz benutzen?|deinen|deinem|deiner
+bestehen|Mein Bruder hat ___ Führerscheinprüfung bestanden.|die|der|den
+besuchen|Am Wochenende besuche ich ___ Großeltern.|meine|meinen|meiner
+bezahlen|Wer bezahlt heute ___ Rechnung?|die|der|dem
+brauchen|Tom, ich brauche ___ Hilfe!|deine|deiner|deinem
+empfangen|Der Direktor empfängt ___ Gäste um zehn Uhr.|die|den|der
+entwickeln|Unsere Firma entwickelt ___ neuen Motor.|einen|einem|ein
+erhalten|Haben Sie ___ Brief schon erhalten?|meinen|meinem|meiner
+erwarten|Wir erwarten ___ Lieferung am Montag.|die|der|den
+essen|Mein Sohn isst ___ Gemüse nicht gern.|das|dem|den
+finden|Ich finde ___ Schlüssel nicht!|meinen|meinem|mein
+genießen|Im Urlaub genießen wir ___ Ruhe.|die|der|dem
+gründen|Sie möchte ___ eigene Firma gründen.|eine|einer|einen
+haben|Hast du ___ Regenschirm dabei?|einen|einem|ein
+hinterlassen|Er hat ___ Nachricht für dich hinterlassen.|eine|einer|einen
+hören|Ich kann ___ nicht hören. Sprich bitte lauter!|dich|dir|du
+kennen|Kennst du ___ neuen Kollegen schon?|den|dem|der
+kennenlernen|Dein Bruder ist sehr nett. Ich möchte ___ gern kennenlernen.|ihn|ihm|er
+kopieren|Kannst du ___ Dokument für mich kopieren?|das|dem|den
+lesen|Ich lese gerade ___ spannenden Krimi.|einen|einem|ein
+lieben|Die Kinder lieben ___ Oma.|ihre|ihrer|ihrem
+lösen|Wir müssen ___ Problem schnell lösen.|das|dem|den
+möchten|Ich möchte ___ Tasse Kaffee, bitte.|eine|einer|einen
+mögen|Wie findest du den neuen Chef? Magst du ___?|ihn|ihm|er
+planen|Wir planen ___ Reise nach Italien.|eine|einer|einen
+präsentieren|Morgen präsentiert Frau Kurz ___ Ergebnisse.|die|den|der
+respektieren|Ich respektiere ___ Meinung, Frau Weber.|Ihre|Ihrer|Ihrem
+riechen|Riechst du ___ Rauch?|den|dem|der
+sehen|Anna wohnt um die Ecke. Ich sehe ___ jeden Tag im Bus.|sie|ihr|ihre
+speichern|Vergiss nicht, ___ Datei zu speichern!|die|der|dem
+stehlen|Jemand hat ___ Fahrrad gestohlen!|mein|meinem|meinen
+stören|Entschuldigung, störe ich ___?|Sie|Ihnen|Ihr
+suchen|Entschuldigung, ich suche ___ Apotheke.|eine|einer|einen
+trinken|Möchtest du ___ Glas Wasser trinken?|ein|einem|einen
+unterstützen|Meine Eltern unterstützen ___ immer.|mich|mir|ich
+verarbeiten|Diese Fabrik verarbeitet ___ Milch aus der Region.|die|der|dem
+vereinbaren|Ich möchte gern ___ Termin vereinbaren.|einen|einem|ein
+vergessen|Oh nein, ich habe ___ Geburtstag vergessen!|deinen|deinem|dein
+vorbereiten|Ich bereite gerade ___ Präsentation vor.|die|der|den
+würzen|Würz ___ Soße bitte mit etwas Pfeffer!|die|der|dem
+antworten|Tim hat mir geschrieben, aber ich habe ___ noch nicht geantwortet.|ihm|ihn|er
+danken|Ich danke ___ für die Blumen!|dir|dich|du
+folgen|Bitte folgen Sie ___ zum Ausgang!|mir|mich|ich
+gefallen|Die neue Wohnung gefällt ___ Frau sehr.|meiner|meine|meinem
+gehören|Gehört das Handy ___?|dir|dich|du
+glauben|Er lügt immer. Ich glaube ___ kein Wort!|ihm|ihn|er
+helfen|Kannst du ___ bei den Hausaufgaben helfen?|mir|mich|ich
+schmecken|Hat ___ das Essen geschmeckt, Herr Braun?|Ihnen|Sie|Ihr
+widersprechen|Er widerspricht ___ Chef nie.|seinem|seinen|seiner
+zuhören|Die Kinder hören ___ Lehrerin genau zu.|der|die|den
+bieten|Wir bieten ___ Kunden einen kostenlosen Service.|unseren|unsere|unserer
+anbieten|Darf ich ___ etwas zu trinken anbieten, Frau Klein?|Ihnen|Sie|Ihr
+bringen|Kannst du ___ bitte ein Glas Wasser bringen?|mir|mich|ich
+mitbringen|Ich bringe ___ ein Souvenir aus Spanien mit.|dir|dich|du
+empfehlen|Welches Buch können Sie ___ Tochter empfehlen?|meiner|meine|meinen
+erklären|Tim versteht die Aufgabe nicht. Kannst du ___ die Aufgabe erklären?|ihm|ihn|er
+erzählen|Die Oma erzählt ___ Enkelkindern eine Geschichte.|den|die|dem
+geben|Gib ___ Hund nicht so viel Schokolade!|dem|den|der
+zurückgeben|Wann gibst du ___ mein Buch zurück?|mir|mich|ich
+gewähren|Das Geschäft gewährt ___ Studenten zehn Prozent Rabatt.|allen|alle|aller
+holen|Kannst du ___ Oma einen Stuhl holen?|der|die|den
+leihen|Ich leihe ___ Nachbarn meine Leiter.|meinem|meinen|mein
+kaufen|Ich kaufe ___ Sohn ein neues Fahrrad.|meinem|meinen|meiner
+schenken|Was schenkst du ___ Mutter zum Geburtstag?|deiner|deine|deinem
+schicken|Ich schicke ___ die Unterlagen per E-Mail, Herr Roth.|Ihnen|Sie|Ihr
+senden|Bitte senden Sie ___ Firma eine Bestätigung.|unserer|unsere|unseren
+versprechen|Er hat ___ Kindern ein Eis versprochen.|den|die|dem
+waschen|Sie wäscht ___ Baby die Haare.|dem|das|den
+wünschen|Wir wünschen ___ alles Gute!|dir|dich|du
+zeigen|Können Sie ___ den Weg zum Bahnhof zeigen?|mir|mich|ich
+`);
+const KPS = rows(`
+abhängen von|Ob wir grillen, hängt ___ Wetter ab.|vom|auf das|an dem
+achten auf|Achten Sie bitte ___ Verkehr!|auf den|auf dem|für den
+anfangen mit|Wann fangen wir ___ Projekt an?|mit dem|mit das|auf das
+arbeiten bei|Mein Mann arbeitet ___ großen Firma.|bei einer|bei eine|für einer
+arbeiten als|Sie arbeitet ___ Krankenschwester.|als|wie|bei
+arbeiten an|Ich arbeite gerade ___ neuen Bericht.|an einem|an einen|auf einem
+sich ärgern über|Ich ärgere mich ___ laute Musik.|über die|über der|auf der
+sich aufregen über|Reg dich nicht ___ kleinen Fehler auf!|über den|über dem|von den
+ausgeben für|Wie viel gibst du ___ Miete aus?|für die|für der|an die
+beginnen mit|Wir beginnen ___ Unterricht um acht Uhr.|mit dem|mit den|auf den
+sich bedanken bei|Ich bedanke mich ___ Kollegin.|bei meiner|bei meine|an meiner
+sich bedanken für|Wir bedanken uns ___ Einladung.|für die|für der|über der
+berichten über|Die Zeitung berichtet ___ Unfall.|über den|über dem|von den
+sich beschäftigen mit|Ich beschäftige mich gerade ___ Thema.|mit dem|mit das|über das
+sich beschweren bei|Der Gast beschwert sich ___ Hotelmanager.|beim|bei den|an den
+sich beschweren über|Er beschwert sich ___ schlechten Service.|über den|über dem|bei den
+bestehen in|Das Problem besteht ___ hohen Kosten.|in den|in die|aus die
+bestehen aus|Der Kurs besteht ___ zehn Lektionen.|aus|auf|in
+sich bewerben um|Sie bewirbt sich ___ Stelle als Lehrerin.|um eine|um einer|für einer
+bitten um|Darf ich Sie ___ Gefallen bitten?|um einen|um einem|für einen
+danken für|Danke ___ Hilfe!|für die|für der|an die
+denken an|Ich denke oft ___ Heimat.|an meine|an meiner|über meiner
+diskutieren mit|Ich diskutiere oft ___ Vater.|mit meinem|mit meinen|über meinen
+diskutieren über|Wir diskutieren ___ Vorschlag.|über den|über dem|mit den
+sich entscheiden für|Ich habe mich ___ blaue Jacke entschieden.|für die|für der|über der
+sich entschuldigen bei|Du solltest dich ___ Freundin entschuldigen.|bei deiner|bei deine|für deiner
+sich entschuldigen für|Ich entschuldige mich ___ Verspätung.|für die|für der|bei der
+sich erinnern an|Erinnerst du dich ___ ersten Schultag?|an den|an dem|über den
+sich erkundigen bei|Ich erkundige mich ___ Rezeption.|bei der|bei die|an die
+sich erkundigen nach|Er erkundigt sich ___ Preis.|nach dem|nach den|über dem
+fragen nach|Der Tourist fragt ___ Weg zum Museum.|nach dem|nach den|für den
+sich freuen über|Ich freue mich sehr ___ Geschenk.|über das|über dem|an dem
+sich freuen auf|Die Kinder freuen sich schon ___ Ferien im Sommer.|auf die|auf den|an den
+gehören zu|Das Bad gehört ___ Wohnung.|zur|zu die|in die
+es geht um|In dem Film geht es ___ Liebe.|um die|um der|über der
+gelten als|Herr Klein gilt als ___ Lehrer.|guter|guten|gutem
+gratulieren zu|Wir gratulieren dir ___ Hochzeit.|zur|zu die|für die
+es handelt sich um|Es handelt sich ___ Missverständnis.|um ein|um einem|über ein
+sich interessieren für|Interessierst du dich ___ Fußball?|für|an|über
+lachen über|Alle lachen ___ Witz.|über den|über dem|an den
+nachdenken über|Ich muss noch ___ Angebot nachdenken.|über das|über dem|an dem
+reagieren auf|Wie hat er ___ Nachricht reagiert?|auf die|auf der|an der
+reden über|Wir reden gerade ___ Urlaub.|über den|über dem|an den
+riechen nach|Hier riecht es ___ Kaffee.|nach|auf|an
+sprechen mit|Haben Sie schon ___ Chefin gesprochen?|mit der|mit die|über die
+sprechen über|Wir müssen ___ Problem sprechen.|über das|über dem|mit das
+stammen aus|Diese Tomaten stammen ___ Italien.|aus|in|nach
+sich streiten mit|Er streitet sich oft ___ Schwester.|mit seiner|mit seine|über seiner
+teilnehmen an|Nimmst du ___ Deutschkurs teil?|am|an den|bei den
+telefonieren mit|Ich telefoniere jeden Sonntag ___ Eltern.|mit meinen|mit meine|an meinen
+träumen von|Sie träumt ___ eigenen Haus.|von einem|von ein|über ein
+sich unterhalten mit|Ich habe mich lange ___ Nachbarin unterhalten.|mit der|mit die|über der
+sich unterhalten über|Wir unterhalten uns oft ___ Politik.|über|mit|an
+verfügen über|Das Hotel verfügt ___ Parkplatz.|über einen|über einem|auf einen
+verbinden mit|Können Sie mich bitte ___ Frau Weber verbinden?|mit|zu|an
+sich verlieben in|Er hat sich ___ Kollegin verliebt.|in eine|in einer|an eine
+sich vorbereiten auf|Ich bereite mich ___ Prüfung vor.|auf die|auf der|für der
+warten auf|Wir warten schon zehn Minuten ___ Bus.|auf den|auf dem|für den
+`);
+// short telc-style letters; each gap: [right, wrong, wrong, why] — option order is shuffled once (seeded) so it stays the same
+const KTELC = [
+  { title: 'E-Mail an den Vermieter', text: `Sehr geehrter Herr Schulz,
+
+leider muss ich {1} Termin am Freitag absagen. Ich habe {2} Brief vom Montag erhalten und möchte {3} gern antworten: Die Heizung funktioniert immer noch nicht. Können Sie {4} bitte einen Techniker schicken? Ich warte schon seit zwei Wochen {5} Ihre Antwort. Meine Nachbarin hat sich auch schon {6} Problem beschwert. Ich danke {7} für Ihre Hilfe. Bitte rufen Sie {8} an, wenn Sie Zeit haben.
+
+Mit freundlichen Grüßen
+Maria Lopez`, gaps: [
+    ['den', 'dem', 'der', 'absagen + Akkusativ · der Termin → den'],
+    ['Ihren', 'Ihrem', 'Ihrer', 'erhalten + Akkusativ · der Brief → Ihren'],
+    ['Ihnen', 'Sie', 'Ihr', 'antworten + Dativ → Ihnen'],
+    ['mir', 'mich', 'ich', 'schicken: wem? → Dativ → mir'],
+    ['auf', 'für', 'an', 'warten auf + Akkusativ'],
+    ['über das', 'über dem', 'bei das', 'sich beschweren über + Akkusativ · das Problem'],
+    ['Ihnen', 'Sie', 'Ihr', 'danken + Dativ → Ihnen'],
+    ['mich', 'mir', 'ich', 'anrufen + Akkusativ → mich'],
+  ] },
+  { title: 'Nachricht an eine Kollegin', text: `Hallo Petra,
+
+kannst du {1} morgen bei der Präsentation helfen? Ich muss {2} Ergebnisse unseres Projekts präsentieren und bin ziemlich nervös. Herr Wagner hat {3} gestern angerufen und gesagt, dass auch die Chefin kommt. Ich habe {4} neuen Laptop noch nicht oft benutzt. Kannst du {5} vielleicht kurz erklären, wie das Programm funktioniert? Ich bereite mich schon seit Tagen {6} den Termin vor. Danach können wir {7} Ergebnis diskutieren. Ich bringe {8} auch einen Kaffee mit!
+
+Viele Grüße
+Lena`, gaps: [
+    ['mir', 'mich', 'ich', 'helfen + Dativ → mir'],
+    ['die', 'den', 'der', 'präsentieren + Akkusativ · die Ergebnisse (Plural) → die'],
+    ['mich', 'mir', 'ich', 'anrufen + Akkusativ → mich'],
+    ['den', 'dem', 'der', 'benutzen + Akkusativ · der Laptop → den'],
+    ['mir', 'mich', 'ich', 'erklären: wem? → Dativ → mir'],
+    ['auf', 'für', 'an', 'sich vorbereiten auf + Akkusativ'],
+    ['über das', 'über dem', 'mit das', 'diskutieren über + Akkusativ · das Ergebnis'],
+    ['dir', 'dich', 'du', 'mitbringen: wem? → Dativ → dir'],
+  ] },
+  { title: 'E-Mail an einen Freund', text: `Lieber Jonas,
+
+vielen Dank für deine Karte! Sie hat {1} sehr gefallen. Am Wochenende habe ich {2} Großeltern besucht. Mein Opa hat {3} viele Geschichten von früher erzählt. Er interessiert sich {4} alte Fotos, deshalb habe ich {5} ein Fotoalbum geschenkt. Meine Oma hat sich sehr {6} Besuch gefreut. Nächsten Monat feiern die beiden Goldene Hochzeit, und ich möchte {7} eine Reise schenken. Kannst du mir ein Hotel empfehlen? Ich warte {8} deine Antwort!
+
+Liebe Grüße
+Max`, gaps: [
+    ['mir', 'mich', 'ich', 'gefallen + Dativ → mir'],
+    ['meine', 'meinen', 'meiner', 'besuchen + Akkusativ · die Großeltern (Plural) → meine'],
+    ['mir', 'mich', 'ich', 'erzählen: wem? → Dativ → mir'],
+    ['für', 'an', 'über', 'sich interessieren für + Akkusativ'],
+    ['ihm', 'ihn', 'er', 'schenken: wem? → Dativ → ihm'],
+    ['über den', 'über dem', 'auf dem', 'sich freuen über + Akkusativ · der Besuch (it already happened → über)'],
+    ['ihnen', 'sie', 'ihr', 'schenken: wem? → Dativ · die beiden → ihnen'],
+    ['auf', 'für', 'an', 'warten auf + Akkusativ'],
+  ] },
+  { title: 'Beschwerde an einen Online-Shop', text: `Sehr geehrte Damen und Herren,
+
+vor zwei Wochen habe ich in Ihrem Shop {1} Kaffeemaschine gekauft. Leider funktioniert sie nicht, obwohl ich {2} Gerät genau nach der Anleitung benutzt habe. Ich habe schon zweimal {3} Kundenservice angerufen, aber niemand hat {4} geholfen. Bitte schicken Sie {5} eine neue Maschine oder geben Sie {6} das Geld zurück. Ich erwarte {7} Antwort bis Freitag und bedanke mich {8} Ihr Verständnis.
+
+Mit freundlichen Grüßen
+Ahmet Yilmaz`, gaps: [
+    ['eine', 'einer', 'einen', 'kaufen: was? → Akkusativ · die Kaffeemaschine → eine'],
+    ['das', 'dem', 'den', 'benutzen + Akkusativ · das Gerät → das'],
+    ['den', 'dem', 'der', 'anrufen + Akkusativ · der Kundenservice → den'],
+    ['mir', 'mich', 'ich', 'helfen + Dativ → mir'],
+    ['mir', 'mich', 'ich', 'schicken: wem? → Dativ → mir'],
+    ['mir', 'mich', 'ich', 'zurückgeben: wem? → Dativ → mir'],
+    ['Ihre', 'Ihrer', 'Ihrem', 'erwarten + Akkusativ · die Antwort → Ihre'],
+    ['für', 'bei', 'über', 'sich bedanken für + Akkusativ (bei + Dativ = the person you thank)'],
+  ] },
+];
+const KV_BY = Object.fromEntries(KV.map(v => [v[0], v])), KP_BY = Object.fromEntries(KP.map(v => [v[0], v[1]]));
+// one gap, three options a) b) c) in random order
+function abcQ(tag, key, prompt, right, wrongs, explain, tip) {
+  const o = shuffle([right, ...wrongs]);
+  return { tag, key, prompt, tip, kind: 'multi', fill: right, sub: 'a, b oder c?',
+    groups: [{ options: o.map((x, k) => `${'abc'[k]}) ${x}`), answer: `${'abc'[o.indexOf(right)]}) ${right}` }], explain };
 }
+function ksQ([verb, t, a, w1, w2]) {
+  const [, c, extra] = KV_BY[verb];
+  return abcQ('Akkusativ oder Dativ?', 'ksq' + verb, t, a, [w1, w2],
+    `<b>${verb}</b> + ${cspan(KV_CLS[c], KV_LAB[c])}${extra ? ` <span class="sub">${extra}</span>` : ''}<br>${t.replace('___', `<b>${a}</b>`)}` +
+    (c === 'DA' ? '<br>Wem? (person) → Dativ · Was? (thing) → Akkusativ' : ''), `Verb: <b>${verb}</b>`);
+}
+function kpsQ([verb, t, a, w1, w2]) {
+  const c = KP_BY[verb];
+  return abcQ('Verb + Präposition', 'kps' + verb, t, a, [w1, w2], `<b>${verb}</b> + ${cspan(c, CASE[c])}<br>${t.replace('___', `<b>${a}</b>`)}`, `Verb: <b>${verb}</b>`);
+}
+const ktelcQs = (L, seed) => sb1Qs({ ...L, gaps: L.gaps.map(([a, w1, w2, why], i) => { const o = sshuffle([a, w1, w2], seed * 10 + i); return [o, o.indexOf(a), why]; }) });
 
 // ---------- cheat sheets ----------
 const REF = {
@@ -1826,9 +2039,10 @@ const FEATURES = [
     ...group('prep-temp', 'Zeit: am, im, um, seit, vor …', split(TEMP, 9, 84), tempQ),
   ] },
   { id: 'kasus', title: 'Akkusativ oder Dativ?', ex: [
-    ...group('kasus-verb', 'Verb → Kasus', split(KV, 10, 91), kvCaseQ),
-    ...group('kasus-satz', 'Sätze: den oder dem?', split(KV, 10, 92), kvSentQ),
-    ...group('kasus-prep', 'Verb + Präposition → Kasus', split(KP, 10, 93), kpQ),
+    ...group('kasus-abc', 'Lückensätze (a, b, c)', split(KS, 10, 94), ksQ),
+    ...group('kasus-pabc', 'Verb + Präposition im Satz', split(KPS, 10, 95), kpsQ),
+    ...KTELC.map((L, i) => ({ id: 'kasus-telc-' + (i + 1), label: 'telc-Texte', note: L.title, ordered: true, make: () => ktelcQs(L, i + 1) })),
+    ...group('kasus-satz', 'Selbst schreiben: den oder dem?', split(KV, 10, 92), kvSentQ),
   ] },
   { id: 'satz', title: 'Satzbau', ex: [
     ...group('satz-modal', SET_LAB.modal, split(bySet('modal'), 8, 5), buildQ),
